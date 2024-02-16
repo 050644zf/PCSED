@@ -1,3 +1,4 @@
+import time
 from typing import Any, Callable, Optional
 import torch
 import torch.nn as nn
@@ -228,12 +229,24 @@ class ADMM_HybridNet(HybridNet):
         self.Phi_model.to(device)
 
 
+
     def forward(self, data_input:torch.Tensor):
         Phi_curves = self.fnet(self.DesignParams)* self.QEC
 
-        Phi = self.Phi_model.get_Phi(Phi_curves)
+        batch,depth,h,w = data_input.shape()
+        image = torch.ones(batch,h,w,depth)
+        Phi = self.Phi_model.get_Phi(image,Phi_curves)
 
         # TODO: 往下面加推理
+        Phi_s = torch.sum(Phi ** 2, 1)
+        Phi_s[Phi_s == 0] = 1
+        input_mask_pred = (Phi, Phi_s)
+        ADMM_net.eval()
+        input_meas = torch.sum(Phi * data_input, 1)
+        with torch.no_grad():
+            output = ADMM_net(input_meas, input_mask_pred)
+
+        return output
 
 
 

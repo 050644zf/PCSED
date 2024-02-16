@@ -26,17 +26,12 @@ from tmm_torch import TMM_predictor
 os.chdir(Path(__file__).parent)
 
 from load_config import *
-from load_ADMM_data import *
-from arch.ADMM_net import ADMM_net
-
-# TODO: 加载数据
-
 
 # Set size of HybNet and create HybNet object
 hybnet_size = [SpectralSliceNum, TFNum, 500, 500, SpectralSliceNum]
 hybnet = HybridNet.ADMM_HybridNet(fnet_path, params_min, params_max, hybnet_size, device_train, QEC=QEC)
 
-hybnet.ADMM_net = torch.load(args.pretained)
+hybnet.ADMM_net = torch.load(Path(config['ADMM_net']))
 hybnet.ADMM_net.to(device_train)
 hybnet.ADMM_net.eval()
 
@@ -52,8 +47,8 @@ if config.get("override_filters"):
 
 # Set loss function and optimizer
 LossFcn = HybridNet.HybnetLoss_plus()
-# optimizer_net = torch.optim.Adam(filter(lambda p: p.requires_grad, hybnet.SWNet.parameters()), lr=lr)
-# scheduler_net = torch.optim.lr_scheduler.StepLR(optimizer_net, step_size=lr_decay_step, gamma=lr_decay_gamma) 
+optimizer_net = torch.optim.Adam(filter(lambda p: p.requires_grad, hybnet.SWNet.parameters()), lr=lr)
+scheduler_net = torch.optim.lr_scheduler.StepLR(optimizer_net, step_size=lr_decay_step, gamma=lr_decay_gamma) 
 optimizer_params = torch.optim.Adam(filter(lambda p: p.requires_grad, [hybnet.DesignParams]), lr=lr*config.get("params_lr_coef",1))
 scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=lr_decay_step, gamma=lr_decay_gamma)
 
@@ -66,35 +61,30 @@ time_start = time.time()
 time_epoch0 = time_start
 params_history = [hybnet.show_design_params().detach().cpu().numpy()]
 
-# Train Params
+# Train HybNet
 for epoch in range(EpochNum):
-    # TODO: 改训练代码
     # Shuffle training data
     Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
-
-    # TODO: 这里可能要改成DataLoader
     for i in range(0, TrainingDataSize // BatchSize):
         # Get batch of training data
-        # TODO: 改数据
-        Specs_batch = 
+        Specs_batch = Specs_train[i * BatchSize: i * BatchSize + BatchSize, :].to(device_train)
         # Forward pass through HybNet
         Output_pred = hybnet(Specs_batch)
         DesignParams = hybnet.show_design_params()
         responses = hybnet.show_hw_weights()
         # Calculate loss and backpropagate
         loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range,responses=responses)
-        optimizer_params.zero_grad()
+        optimizer_net.zero_grad(),optimizer_params.zero_grad()
         loss.backward(retain_graph=True)
-        optimizer_params.step()
-    scheduler_params.step()
+        optimizer_net.step(),optimizer_params.step()
+    scheduler_net.step(), scheduler_params.step()
     if epoch % TestInterval == 0:
         # Evaluate HybNet on testing data
         hybnet.to(device_test)
-        with torch.no_grad():
-            # TODO: 加测试代码，算PSNR等
-            pass
-
-
+        hybnet.eval()
+        Out_test_pred = hybnet(Specs_test)
+        hybnet.to(device_train)
+        hybnet.train()
         hybnet.eval_fnet()
 
         DesignParams = hybnet.show_design_params()
@@ -103,22 +93,18 @@ for epoch in range(EpochNum):
             scio.savemat(path / "params_history.mat", {"params_history": params_history})
 
         loss_train[epoch // TestInterval] = loss.data
-        # TODO: 改Test loss的输入
         loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
         loss_test[epoch // TestInterval] = loss_t.data
-
-
-        # TODO: 改PSNR, SSIM等输出
         if epoch == 0:
             time_epoch0 = time.time()
             time_remain = (time_epoch0 - time_start) * EpochNum
         else:
             time_remain = (time.time() - time_epoch0) / epoch * (EpochNum - epoch)
         print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_params.get_lr()[0], '| remaining time: %.0fs (to %s)'
+              '| learn rate: %.8f' % scheduler_net.get_lr()[0], '| remaining time: %.0fs (to %s)'
               % (time_remain, time.strftime('%H:%M:%S', time.localtime(time.time() + time_remain))))
         print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
+              '| learn rate: %.8f' % scheduler_net.get_lr()[0], file=log_file)
 time_end = time.time()
 time_total = time_end - time_start
 m, s = divmod(time_total, 60)
@@ -141,3 +127,47 @@ TargetCurves_FMN = hybnet.run_fnet(DesignParams).double().detach().cpu().numpy()
 scio.savemat(path / 'TargetCurves_FMN.mat', mdict={'TargetCurves_FMN': TargetCurves_FMN})
 Params = DesignParams.double().detach().cpu().numpy()
 scio.savemat(path / 'TrainedParams.mat', mdict={'Params': Params})
+
+plt.figure()
+for i in range(TFNum):
+    plt.subplot(math.ceil(math.sqrt(TFNum)), math.ceil(math.sqrt(TFNum)), i + 1)
+    plt.plot(WL, TargetCurves[i, :], WL, TargetCurves_FMN[i, :])
+    plt.ylim(0, 1)
+plt.savefig(path / 'ROFcurves')
+plt.show()
+
+Output_train = hybnet(Specs_train[0, :].to(device_test).unsqueeze(0)).squeeze(0)
+FigureTrainLoss = HybridNet.MatchLossFcn(Specs_train[0, :].to(device_test), Output_train)
+plt.figure()
+plt.plot(WL, Specs_train[0, :].cpu().numpy())
+plt.plot(WL, Output_train.detach().cpu().numpy())
+plt.ylim(0, 1)
+plt.legend(['GT', 'pred'], loc='upper right')
+plt.savefig(path / 'train')
+plt.show()
+
+Output_test = hybnet(Specs_test[0, :].to(device_test).unsqueeze(0)).squeeze(0)
+FigureTestLoss = HybridNet.MatchLossFcn(Specs_test[0, :].to(device_test), Output_test)
+plt.figure()
+plt.plot(WL, Specs_test[0, :].cpu().numpy())
+plt.plot(WL, Output_test.detach().cpu().numpy())
+plt.ylim(0, 1)
+plt.legend(['GT', 'pred'], loc='upper right')
+plt.savefig(path / 'test')
+plt.show()
+
+print('Training finished!',
+      '| loss in figure \'train.png\': %.5f' % FigureTrainLoss.data.item(),
+      '| loss in figure \'test.png\': %.5f' % FigureTestLoss.data.item())
+print('Training finished!',
+      '| loss in figure \'train.png\': %.5f' % FigureTrainLoss.data.item(),
+      '| loss in figure \'test.png\': %.5f' % FigureTestLoss.data.item(), file=log_file)
+log_file.close()
+
+plt.figure()
+plt.plot(range(0, EpochNum, TestInterval), loss_train.detach().cpu().numpy())
+plt.plot(range(0, EpochNum, TestInterval), loss_test.detach().cpu().numpy())
+plt.semilogy()
+plt.legend(['Loss_train', 'Loss_test'], loc='upper right')
+plt.savefig(path / 'loss')
+plt.show()

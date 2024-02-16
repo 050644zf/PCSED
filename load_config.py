@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='config.yml', help='path to config file')
 parser.add_argument('-n', '--nettype', type=str, default='hybnet', help='type of network to train')
 parser.add_argument('-r','--response',type=str, default='',help='folder to alter the response curves')
+parser.add_argument('--pretained',type=str, default='',help='path to the pretained model')
+parser.add_argument
 args = parser.parse_args()
 
 # Set working directory to the directory of this script
@@ -74,22 +76,23 @@ Resolution = fnet_config['Resolution']
 WL = np.arange(StartWL, EndWL, Resolution)
 SpectralSliceNum = WL.size
 
-# Load training and testing data
-Specs_train = torch.zeros([TrainingDataSize, SpectralSliceNum], device=device_data, dtype=dtype)
-Specs_test = torch.zeros([TestingDataSize, SpectralSliceNum], device=device_test, dtype=dtype)
-data = scio.loadmat(config['TrainDataPath'])
-Specs_all = np.array(data['data'])
-np.random.shuffle(Specs_all)
-Specs_train = torch.tensor(Specs_all[0:TrainingDataSize, :])
-data = scio.loadmat(config['TestDataPath'])
-Specs_all = np.array(data['data'])
-np.random.shuffle(Specs_all)
-Specs_test = torch.tensor(
-    Specs_all[0:TestingDataSize, :], device=device_test)
-del Specs_all, data
+if args.nettype != 'ADMM_Net':
+    # Load training and testing data
+    Specs_train = torch.zeros([TrainingDataSize, SpectralSliceNum], device=device_data, dtype=dtype)
+    Specs_test = torch.zeros([TestingDataSize, SpectralSliceNum], device=device_test, dtype=dtype)
+    data = scio.loadmat(config['TrainDataPath'])
+    Specs_all = np.array(data['data'])
+    np.random.shuffle(Specs_all)
+    Specs_train = torch.tensor(Specs_all[0:TrainingDataSize, :])
+    data = scio.loadmat(config['TestDataPath'])
+    Specs_all = np.array(data['data'])
+    np.random.shuffle(Specs_all)
+    Specs_test = torch.tensor(
+        Specs_all[0:TestingDataSize, :], device=device_test)
+    del Specs_all, data
 
 # Check that the number of spectral slices matches the size of the training data
-assert SpectralSliceNum == Specs_train.size(1)
+    assert SpectralSliceNum == Specs_train.size(1)
 
 # Load QEC data if specified in configuration
 QEC = 1

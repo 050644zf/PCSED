@@ -20,6 +20,8 @@ import os
 import json
 import shutil
 from pathlib import Path
+
+
 from tmm_torch import TMM_predictor
 
 # Set working directory to the directory of this script
@@ -29,7 +31,9 @@ from load_config import *
 from load_ADMM_data import *
 from arch.ADMM_net import ADMM_net
 
-# TODO: 加载数据
+# TODO: 加载数据 需要添加路径
+train_set = LoadTraining(train_data_path)
+test_data = LoadTest(test_data_path)
 
 
 # Set size of HybNet and create HybNet object
@@ -66,15 +70,39 @@ time_start = time.time()
 time_epoch0 = time_start
 params_history = [hybnet.show_design_params().detach().cpu().numpy()]
 
+# 新增修改
+n_filter=9
+image = torch.ones(BatchSize, 128, 128, 121)
+params = torch.nn.Parameter(torch.rand(n_filter, TFNum) * (params_max - params_min)*0.1 + params_min)
+params = params.cuda()
 # Train Params
 for epoch in range(EpochNum):
     # TODO: 改训练代码
     # Shuffle training data
-    Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
+    # Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
 
     # TODO: 这里可能要改成DataLoader
     for i in range(0, TrainingDataSize // BatchSize):
         # Get batch of training data
+        gt_batch = shuffle_crop(train_set, BatchSize, crop_size=128)
+        # 自动求导
+        gt = Variable(gt_batch).cuda().float()
+
+        # 更新Phi
+        noised_params = params + (torch.rand_like(params) * 2 - 1) * thickness_error
+        # noised_params = torch.rand(n_filter, TFNum) * (params_max - params_min) + params_min
+        # noised_params = params
+        responses = fnet(noised_params)
+        Phi_data_tensor = responses
+
+        Phi = Phi_model.get_Phi(image, Phi_data_tensor)
+        Phi = Phi.permute(0, 3, 1, 2).cuda()
+        Phi = Phi.contiguous()
+        Phi_s = torch.sum(Phi ** 2, 1)
+        Phi_s[Phi_s == 0] = 1
+        input_mask_train = (Phi, Phi_s)
+
+
         # TODO: 改数据
         Specs_batch = 
         # Forward pass through HybNet

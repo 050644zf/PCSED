@@ -36,6 +36,7 @@ PCSED:
   TestDataPath: ./data/ICVL_400-1000-5_100K.mat
   History: true
   ADMM_net: ./nets/ADMM_net/20240125_220605/admm_net.pkl
+  thickness_error: 0.
 noise:
   SNR: 60
   alpha: 0.

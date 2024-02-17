@@ -231,7 +231,7 @@ class ADMM_HybridNet(HybridNet):
 
 
     def forward(self, data_input:torch.Tensor):
-        Phi_curves = self.fnet(self.DesignParams)* self.QEC
+        Phi_curves = self.show_hw_weights()
 
         batch,depth,h,w = data_input.shape()
         image = torch.ones(batch,h,w,depth)
@@ -248,6 +248,15 @@ class ADMM_HybridNet(HybridNet):
 
         return output
 
+    def get_Phi(self,data_input):
+        Phi_curves = self.show_hw_weights()
+
+        batch,depth,h,w = data_input.shape()
+        image = torch.ones(batch,h,w,depth)
+        Phi = self.Phi_model.get_Phi(image,Phi_curves)
+
+        return Phi
+        
 
 
 

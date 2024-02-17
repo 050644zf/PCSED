@@ -21,7 +21,7 @@ PCSED:
   TestingDataSize: 10000
   IsParallel: false
   EpochNum: 501
-  TestInterval: 1
+  TestInterval: 10
   BatchSize: 100000
   lr: 1.0e-4
   params_lr_coef: 1.0e+4
@@ -42,3 +42,8 @@ noise:
   alpha: 0.
   dc: 0
   bitdepth: 8
+  amp: 0.05
+ADMM:
+  TrainDataPath: ./data/ICVL_400-1000-5_1M.mat
+  TestDataPath: ./data/ICVL_400-1000-5_100K.mat
+  batch_size: 5

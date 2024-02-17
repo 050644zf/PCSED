@@ -30,11 +30,17 @@ os.chdir(Path(__file__).parent)
 from load_config import *
 from load_ADMM_data import *
 from arch.ADMM_net import ADMM_net
+from metric import torch_psnr, torch_ssim
 
-# TODO: 加载数据 需要添加路径
-train_set = LoadTraining(train_data_path)
-test_data = LoadTest(test_data_path)
+train_set = LoadTraining(admm_config['TrainDataPath'])
+test_data = LoadTest(admm_config['TestDataPath'])
 
+# 加载光源
+light_mat_path = './light.mat'
+light_mat = sio.loadmat(light_mat_path)
+light_data = light_mat['data']
+
+noise_level = noise_config['amp']
 
 # Set size of HybNet and create HybNet object
 hybnet_size = [SpectralSliceNum, TFNum, 500, 500, SpectralSliceNum]
@@ -75,11 +81,60 @@ n_filter=9
 image = torch.ones(BatchSize, 128, 128, 121)
 params = torch.nn.Parameter(torch.rand(n_filter, TFNum) * (params_max - params_min)*0.1 + params_min)
 params = params.cuda()
+
+
+BatchSize = admm_config['batch_size']
+
+
+def test(model, add_noise = False):
+    test_gt = test_data.cuda().float().contiguous()
+    model_out_list=[]
+    test_gt_list = []
+    for j in [0, 6, 7]:
+        light = light_data[j, :]
+        light = np.tile(light.reshape((1, 1, 121)), (test_gt.shape[0], 128, 128, 1))
+        light = torch.from_numpy(light).cuda().float()
+        light = light.permute(0, 3, 1, 2).contiguous()
+
+        test_gt = test_gt * light
+        input_meas_my = torch.sum(Phi * test_gt, 1)
+        if add_noise:
+            # 保存当前随机种子状态
+            torch_state = torch.get_rng_state()
+            torch.manual_seed(42)
+            input_meas_my = input_meas_my + torch.randn_like(input_meas_my) * input_meas_my * 0.05
+            # 恢复默认随机种子状态
+            torch.set_rng_state(torch_state)
+
+        with torch.no_grad():
+            model_out = model(input_meas_my)
+        model_out_list.append(model_out)
+        test_gt_list.append(test_gt)
+    model_out = torch.cat(model_out_list, 0)
+    test_gt = torch.cat(test_gt_list, 0)
+    return model_out, test_gt
+    
+def compute_metrics(model_out, test_gt):
+    psnr_list, ssim_list = [], []
+    for i in range(model_out.shape[0]):
+        psnr_val = torch_psnr(model_out[i], test_gt[i])
+        ssim_val = torch_ssim(model_out[i], test_gt[i])
+        psnr_list.append(psnr_val.detach().cpu().numpy())
+        ssim_list.append(ssim_val.detach().cpu().numpy())
+
+    psnr_list = np.array(psnr_list)
+    ssim_list = np.array(ssim_list)
+    return np.mean(psnr_list), np.mean(ssim_list)
+
+def log(text, file=log_file):
+    print(text)
+    print(text, file=file)
+
 # Train Params
 for epoch in range(EpochNum):
     # TODO: 改训练代码
     # Shuffle training data
-    # Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
+    gt_batch = shuffle_crop(train_set, BatchSize, crop_size=128)
 
     # TODO: 这里可能要改成DataLoader
     for i in range(0, TrainingDataSize // BatchSize):
@@ -92,25 +147,34 @@ for epoch in range(EpochNum):
         noised_params = params + (torch.rand_like(params) * 2 - 1) * thickness_error
         # noised_params = torch.rand(n_filter, TFNum) * (params_max - params_min) + params_min
         # noised_params = params
-        responses = fnet(noised_params)
+        responses = hybnet.fnet(noised_params)
         Phi_data_tensor = responses
 
-        Phi = Phi_model.get_Phi(image, Phi_data_tensor)
-        Phi = Phi.permute(0, 3, 1, 2).cuda()
-        Phi = Phi.contiguous()
-        Phi_s = torch.sum(Phi ** 2, 1)
-        Phi_s[Phi_s == 0] = 1
-        input_mask_train = (Phi, Phi_s)
+        Phi = Phi_data_tensor
 
 
         # TODO: 改数据
-        Specs_batch = 
-        # Forward pass through HybNet
-        Output_pred = hybnet(Specs_batch)
-        DesignParams = hybnet.show_design_params()
-        responses = hybnet.show_hw_weights()
+        out_list, gt_list = [], []
+        for j in [0,6,7]:
+            light = light_data[j]
+            light = np.tile(light.reshape((1, 1, 121)), (gt.shape[0], 128, 128, 1))
+            light = torch.from_numpy(light).cuda().float()
+            light = light.permute(0,3,1,2).contiguous()
+            gt = gt * light
+            gt_list.append(gt)
+            input_meas_my = torch.sum(Phi *gt, 1)
+            input_meas_my = input_meas_my + torch.randn_like(input_meas_my) * input_meas_my * noise_level
+            # Forward pass through HybNet
+            model_out = hybnet(input_meas_my)
+            out_list.append(model_out)
+
+            DesignParams = hybnet.show_design_params()
+            responses = hybnet.show_hw_weights()
+
+        model_out = torch.cat(out_list, 0)
+        gt = torch.cat(gt_list, 0)            
         # Calculate loss and backpropagate
-        loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range,responses=responses)
+        loss = LossFcn(model_out, gt, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range,responses=responses)
         optimizer_params.zero_grad()
         loss.backward(retain_graph=True)
         optimizer_params.step()
@@ -118,22 +182,32 @@ for epoch in range(EpochNum):
     if epoch % TestInterval == 0:
         # Evaluate HybNet on testing data
         hybnet.to(device_test)
-        with torch.no_grad():
-            # TODO: 加测试代码，算PSNR等
-            pass
-
-
-        hybnet.eval_fnet()
+        # hybnet.eval_fnet()
 
         DesignParams = hybnet.show_design_params()
+        responses = hybnet.show_hw_weights()
         if config.get("History"):
             params_history.append(DesignParams.detach().cpu().numpy())
             scio.savemat(path / "params_history.mat", {"params_history": params_history})
+
+
+        Out_test_pred, Specs_test = test(hybnet, add_noise=False)
 
         loss_train[epoch // TestInterval] = loss.data
         # TODO: 改Test loss的输入
         loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
         loss_test[epoch // TestInterval] = loss_t.data
+
+        psnr_list, ssim_list = compute_metrics(Out_test_pred, Specs_test)
+        psnr_mean = np.mean(psnr_list)
+        ssim_mean = np.mean(ssim_list)
+
+        test_result_folder = path / "test_result" / f"epoch_{epoch}_{psnr_mean:.2f}_{ssim_mean:.4f}"
+
+        test_result_folder.mkdir(parents=True, exist_ok=True)
+
+        torch.save(hybnet, test_result_folder / "hybnet.pkl")
+        scio.savemat(test_result_folder / 'params.mat', {"params": DesignParams.detach().cpu().numpy(), 'response': responses.detach().cpu().numpy()})
 
 
         # TODO: 改PSNR, SSIM等输出
@@ -142,11 +216,16 @@ for epoch in range(EpochNum):
             time_remain = (time_epoch0 - time_start) * EpochNum
         else:
             time_remain = (time.time() - time_epoch0) / epoch * (EpochNum - epoch)
-        print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_params.get_lr()[0], '| remaining time: %.0fs (to %s)'
-              % (time_remain, time.strftime('%H:%M:%S', time.localtime(time.time() + time_remain))))
-        print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
+
+        log(f'Epoch {epoch}/{EpochNum} training loss: {loss.data:.4f}, testing loss: {loss_t.data:.4f}, PSNR: {psnr_mean:.2f}, SSIM: {ssim_mean:.4f}, time remain: {time_remain:.0f}s')
+
+        # test under noise
+        Out_test_pred, Specs_test = test(hybnet, add_noise=True)
+        psnr_list, ssim_list = compute_metrics(Out_test_pred, Specs_test)
+        psnr_mean = np.mean(psnr_list)
+        ssim_mean = np.mean(ssim_list)
+        log(f'Epoch {epoch}/{EpochNum} training loss: {loss.data:.4f}, testing loss @ {noise_level} noise: {loss_t.data:.4f}, PSNR: {psnr_mean:.2f}, SSIM: {ssim_mean:.4f}, time remain: {time_remain:.0f}s')
+
 time_end = time.time()
 time_total = time_end - time_start
 m, s = divmod(time_total, 60)

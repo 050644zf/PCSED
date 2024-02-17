@@ -88,7 +88,7 @@ class NoiseLayer_Classic(nn.Module):
         # input: [batch_size, channel, height, width]
 
         # add noise
-        noisy_data = input + torch.normal(mean=0., std=self.amp, size=input.shape, device=input.device)
+        noisy_data = input + torch.randn_like(input) * self.amp * input
 
         # quantization
         L = 2 ** self.bitdepth - 1

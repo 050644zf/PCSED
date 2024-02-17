@@ -24,6 +24,9 @@ os.chdir(Path(__file__).parent)
 import yaml
 with open('config.yml', 'r') as f:
     config: dict = yaml.safe_load(f)['PCSED']
+    noise_config = yaml.safe_load(f)['noise']
+    if args.nettype == 'ADMM_Net':
+        admm_config = yaml.safe_load(f)['ADMM_Net']
 
 # Set data type and device for data and training
 dtype = torch.float
@@ -77,7 +80,9 @@ Resolution = fnet_config['Resolution']
 WL = np.arange(StartWL, EndWL, Resolution)
 SpectralSliceNum = WL.size
 
-if args.nettype != 'ADMM_Net':
+if args.nettype == 'ADMM_Net':
+    pass
+else:
     # Load training and testing data
     Specs_train = torch.zeros([TrainingDataSize, SpectralSliceNum], device=device_data, dtype=dtype)
     Specs_test = torch.zeros([TestingDataSize, SpectralSliceNum], device=device_test, dtype=dtype)

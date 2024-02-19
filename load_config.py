@@ -25,11 +25,11 @@ import yaml
 
 if args.nettype == 'ADMM_Net':
     with open('config_ADMM.yml', 'r') as f:
-    c = yaml.safe_load(f)
-    config: dict = c['PCSED']
-    noise_config = c['noise']
-    if args.nettype == 'ADMM_Net':
-        admm_config = c['ADMM_Net']
+        c = yaml.safe_load(f)
+        config: dict = c['PCSED']
+        noise_config = c['noise']
+        if args.nettype == 'ADMM_Net':
+            admm_config = c['ADMM_Net']
 else:
     with open('config.yml', 'r') as f:
         c = yaml.safe_load(f)

@@ -22,12 +22,21 @@ os.chdir(Path(__file__).parent)
 
 # Load configuration from YAML file
 import yaml
-with open('config.yml', 'r') as f:
+
+if args.nettype == 'ADMM_Net':
+    with open('config_ADMM.yml', 'r') as f:
     c = yaml.safe_load(f)
     config: dict = c['PCSED']
     noise_config = c['noise']
     if args.nettype == 'ADMM_Net':
         admm_config = c['ADMM_Net']
+else:
+    with open('config.yml', 'r') as f:
+        c = yaml.safe_load(f)
+        config: dict = c['PCSED']
+        noise_config = c['noise']
+        if args.nettype == 'ADMM_Net':
+            admm_config = c['ADMM_Net']
 
 # Set data type and device for data and training
 dtype = torch.float

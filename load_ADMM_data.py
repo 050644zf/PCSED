@@ -42,8 +42,8 @@ def LoadTraining(path):
     scene_list.sort()
     print('training sences:', len(scene_list))
     for i in range(len(scene_list)):
-        if i > 50:
-            print("i > 50")
+        if i > 30:
+            print("i > 30")
             break
         scene_path = os.path.join(path, scene_list[i])
         if 'mat' not in scene_path:

@@ -366,7 +366,7 @@ class HybnetLoss_plus(HybnetLoss):
         #     newGram = torch.mm(torch.mm(V, torch.diag_embed(Sigma)), V.t())
         #     rloss = torch.mean(gram-newGram)
         # print(original_loss, rloss *beta_range *10)
-        return original_loss + rloss *beta_range *10 *0
+        return original_loss + rloss *beta_range *10 
 
 
 

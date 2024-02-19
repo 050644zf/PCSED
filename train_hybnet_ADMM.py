@@ -30,6 +30,7 @@ os.chdir(Path(__file__).parent)
 from load_config import *
 from load_ADMM_data import *
 from arch.ADMM_net import ADMM_net
+from arch.NoiseLayer import NoiseLayer_Classic
 from metric import torch_psnr, torch_ssim
 
 train_set = LoadTraining(admm_config['TrainDataPath'])
@@ -99,18 +100,13 @@ def test(model, add_noise = False):
         light = torch.from_numpy(light).cuda().float()
         light = light.permute(0, 3, 1, 2).contiguous()
 
-        test_gt = test_gt * light
-        input_meas_my = torch.sum(Phi * test_gt, 1)
+        v = test_gt * light
+        noise = None
         if add_noise:
-            # 保存当前随机种子状态
-            torch_state = torch.get_rng_state()
-            torch.manual_seed(42)
-            input_meas_my = input_meas_my + torch.randn_like(input_meas_my) * input_meas_my * 0.05
-            # 恢复默认随机种子状态
-            torch.set_rng_state(torch_state)
+            noise = NoiseLayer_Classic(noise_level, seed=42)
 
         with torch.no_grad():
-            model_out = model(input_meas_my)
+            model_out = model(test_gt, noise)
         model_out_list.append(model_out)
         test_gt_list.append(test_gt)
     model_out = torch.cat(model_out_list, 0)
@@ -165,10 +161,13 @@ for epoch in range(EpochNum):
             light = light.permute(0,3,1,2).contiguous()
             gt = gt * light
             gt_list.append(gt)
-            input_meas_my = torch.sum(Phi *gt, 1)
-            input_meas_my = input_meas_my + torch.randn_like(input_meas_my) * input_meas_my * noise_level
+
+            noise = None
+            if noise_level > 0:
+                noise = NoiseLayer_Classic(noise_level)
+
             # Forward pass through HybNet
-            model_out = hybnet(input_meas_my)
+            model_out = hybnet(gt, noise=noise)
             out_list.append(model_out)
 
             DesignParams = hybnet.show_design_params()

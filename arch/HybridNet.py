@@ -6,6 +6,7 @@ import torch.nn.functional as func
 from torch.nn.modules.module import Module
 from tmm_torch import TMM_predictor
 import numpy as np
+from .NoiseLayer import NoiseLayer
 
 import scipy.io as scio
 
@@ -230,7 +231,7 @@ class ADMM_HybridNet(HybridNet):
 
 
 
-    def forward(self, data_input:torch.Tensor):
+    def forward(self, data_input:torch.Tensor, Noise:NoiseLayer):
         Phi_curves = self.show_hw_weights()
 
         batch,depth,h,w = data_input.shape()

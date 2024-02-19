@@ -11,7 +11,7 @@ class NoiseLayer(nn.Module):
 
     Add support for dark current
     """
-    def __init__(self, SNR, alpha, dc=0 , bitdepth=8) -> None:
+    def __init__(self, SNR, alpha, dc=0 , bitdepth=8, seed=-1) -> None:
         super(NoiseLayer,self).__init__()
         self.SNR = SNR
         self.alpha = alpha
@@ -19,9 +19,14 @@ class NoiseLayer(nn.Module):
         self.bitdepth = bitdepth
         self.add_noise = True if SNR < 100 else False
         self.quantization = True if bitdepth >0 else False
+        self.seed = seed
 
     def forward(self, input):
         # input: [batch_size, channel, height, width]
+
+        if self.seed > 0:
+            seed_state = torch.random.get_rng_state()
+            torch.manual_seed(self.seed)
 
         # calculate the power of the input signal
 
@@ -60,6 +65,10 @@ class NoiseLayer(nn.Module):
         else:
             noisy_data = noisy_data
 
+        # reset seed state
+        if self.seed > 0:
+            torch.random.set_rng_state(seed_state)
+
         return noisy_data
 
 
@@ -79,20 +88,30 @@ class ClearNoiseLayer(nn.Module):
         return noisy_data
     
 class NoiseLayer_Classic(nn.Module):
-    def __init__(self, amp, bitdepth=8) -> None:
+    def __init__(self, amp, bitdepth=8, seed=-1) -> None:
         super(NoiseLayer_Classic,self).__init__()
         self.amp = amp
         self.bitdepth = bitdepth
+        self.seed = seed
 
     def forward(self, input):
         # input: [batch_size, channel, height, width]
 
+        if self.seed > 0:
+            seed_state = torch.random.get_rng_state()
+            torch.manual_seed(self.seed)
+
         # add noise
+
         noisy_data = input + torch.randn_like(input) * self.amp * input
 
         # quantization
         L = 2 ** self.bitdepth - 1
         noisy_data = torch.round(noisy_data * L) / L
         noisy_data = torch.clamp(noisy_data, 0, 1)
+
+        # reset seed state
+        if self.seed > 0:
+            torch.random.set_rng_state(seed_state)
 
         return noisy_data

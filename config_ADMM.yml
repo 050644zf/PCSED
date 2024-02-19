@@ -25,7 +25,7 @@ PCSED:
   BatchSize: 5
   lr: 1.0e-4
   params_lr_coef: 1.0e+4
-  lr_decay_step: 50
+  lr_decay_step: 100
   lr_decay_gamma: 0.8
   beta_range: 1.0e-3
   TFNum: 9

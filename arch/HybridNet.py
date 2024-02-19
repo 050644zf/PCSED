@@ -254,8 +254,8 @@ class ADMM_HybridNet(HybridNet):
             input_meas = Noise(input_meas)
 
 
-        with torch.no_grad():
-            output = self.ADMM_net(input_meas, input_mask_pred)
+ 
+        output = self.ADMM_net(input_meas, input_mask_pred)
 
         return output
 

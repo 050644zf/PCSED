@@ -165,8 +165,8 @@ for epoch in trange(EpochNum):
             model_out = hybnet(gt, Noise=noise)
             out_list.append(model_out)
 
-            DesignParams = hybnet.show_design_params()
-            responses = hybnet.show_hw_weights()
+        DesignParams = hybnet.show_design_params()
+        responses = hybnet.show_hw_weights()
 
         model_out = torch.cat(out_list, 0)
         gt = torch.cat(gt_list, 0)            

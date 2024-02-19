@@ -79,7 +79,8 @@ time_epoch0 = time_start
 params_history = [hybnet.show_design_params().detach().cpu().numpy()]
 
 # 新增修改
-n_filter=9
+n_filter=config['TFNum']
+TFNum = fnet_config['TFNum']
 image = torch.ones(BatchSize, 128, 128, 121)
 params = torch.nn.Parameter(torch.rand(n_filter, TFNum) * (params_max - params_min)*0.1 + params_min)
 params = params.cuda()

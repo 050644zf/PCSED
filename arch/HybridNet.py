@@ -74,7 +74,7 @@ class HybridNet(nn.Module):
 
         # Initialize the design parameters of the fnet
         self.DesignParams = nn.Parameter(
-            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num]) + thick_min, requires_grad=True)
+            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num]) *0.1 + thick_min, requires_grad=True)
 
         # Set the QEC value
         self.QEC = QEC
@@ -317,7 +317,7 @@ class HybnetLoss(nn.Module):
         res = torch.max((params - thick_min - delta) / (-delta), (params - thick_max + delta) / delta)
         range_loss = torch.mean(torch.max(res, torch.zeros_like(res)))
         # print(match_loss, beta_range * range_loss, 0.01* filter_loss, total_thick_loss, end=' ')
-        return match_loss + beta_range * (range_loss +  filter_loss + total_thick_loss)
+        return match_loss + beta_range * (range_loss +  filter_loss + total_thick_loss * 100)
     
 class HybnetLoss_plus(HybnetLoss):
     def __init__(self):
@@ -340,8 +340,8 @@ class HybnetLoss_plus(HybnetLoss):
 
         # calculate the gram matrix of the responses_DeCorrelation1
         if not responses is None:
-            # D = torch.matmul(responses, dictionary)
-            D = responses
+            D = torch.matmul(responses, dictionary)
+            # D = responses
             D = D / torch.norm(D, dim=(0,1))
             gram = torch.matmul(D.T, D)
             rloss = torch.mean((gram - torch.eye(gram.size(0), device=gram.device))**2)

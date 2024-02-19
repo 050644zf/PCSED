@@ -231,7 +231,7 @@ class ADMM_HybridNet(HybridNet):
 
 
 
-    def forward(self, data_input:torch.Tensor, Noise:NoiseLayer):
+    def forward(self, data_input:torch.Tensor, Noise = None):
         Phi_curves = self.show_hw_weights()
 
         batch,depth,h,w = data_input.size()
@@ -244,6 +244,10 @@ class ADMM_HybridNet(HybridNet):
         input_mask_pred = (Phi, Phi_s)
         self.ADMM_net.eval()
         input_meas = torch.sum(Phi * data_input, 1)
+
+        if not Noise is None:
+            input_meas = Noise(input_meas)
+
         with torch.no_grad():
             output = self.ADMM_net(input_meas, input_mask_pred)
 
@@ -362,7 +366,7 @@ class HybnetLoss_plus(HybnetLoss):
         #     newGram = torch.mm(torch.mm(V, torch.diag_embed(Sigma)), V.t())
         #     rloss = torch.mean(gram-newGram)
         # print(original_loss, rloss *beta_range *10)
-        return original_loss + rloss *beta_range *10
+        return original_loss + rloss *beta_range *10 *0
 
 
 

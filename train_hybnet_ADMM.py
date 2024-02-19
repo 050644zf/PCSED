@@ -173,7 +173,7 @@ for epoch in trange(EpochNum):
         # Calculate loss and backpropagate
         loss = LossFcn(model_out, gt, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range,responses=responses)
         optimizer_params.zero_grad()
-        loss.backward(retain_graph=True)
+        loss.backward(retain_graph=False)
         optimizer_params.step()
     scheduler_params.step()
     if epoch % TestInterval == 0:

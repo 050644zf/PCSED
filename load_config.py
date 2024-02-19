@@ -11,7 +11,7 @@ from pathlib import Path
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, default='config.yml', help='path to config file')
-parser.add_argument('-n', '--nettype', type=str, default='hybnet', help='type of network to train')
+parser.add_argument('-n', '--nettype', type=str, default='ADMM_Net', help='type of network to train')
 parser.add_argument('-r','--response',type=str, default='',help='folder to alter the response curves')
 parser.add_argument('--pretained',type=str, default='',help='path to the pretained model')
 parser.add_argument

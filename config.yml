@@ -22,15 +22,15 @@ PCSED:
   IsParallel: false
   EpochNum: 501
   TestInterval: 10
-  BatchSize: 100000
+  BatchSize: 5
   lr: 1.0e-4
   params_lr_coef: 1.0e+4
   lr_decay_step: 50
   lr_decay_gamma: 0.8
   beta_range: 1.0e-3
-  TFNum: 9
+  TFNum: 20
   #override_filters: ./nets/hybnet/202031027_104727
-  QEC: ./data/QEC.mat
+  #QEC: ./data/QEC.mat
   fnet_folder: ./nets/fnet/TMM_L20_R5.0
   TrainDataPath: ./data/ICVL_400-1000-5_1M.mat
   TestDataPath: ./data/ICVL_400-1000-5_100K.mat
@@ -47,3 +47,4 @@ ADMM_Net:
   TrainDataPath: ./data/wayho_data
   TestDataPath: ./data/save_wayho
   batch_size: 5
+  light: ./data/light.mat

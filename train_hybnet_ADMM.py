@@ -36,7 +36,7 @@ train_set = LoadTraining(admm_config['TrainDataPath'])
 test_data = LoadTest(admm_config['TestDataPath'])
 
 # 加载光源
-light_mat_path = './light.mat'
+light_mat_path = admm_config['light']
 light_mat = sio.loadmat(light_mat_path)
 light_data = light_mat['data']
 
@@ -46,7 +46,9 @@ noise_level = noise_config['amp']
 hybnet_size = [SpectralSliceNum, TFNum, 500, 500, SpectralSliceNum]
 hybnet = HybridNet.ADMM_HybridNet(fnet_path, params_min, params_max, hybnet_size, device_train, QEC=QEC)
 
-hybnet.ADMM_net = torch.load(args.pretained)
+checkpoint = torch.load(args.pretained)
+hybnet.ADMM_net.load_state_dict({k.replace('module.', ''): v for k, v in checkpoint.items()},
+                              strict=True)
 hybnet.ADMM_net.to(device_train)
 hybnet.ADMM_net.eval()
 

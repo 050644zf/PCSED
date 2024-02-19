@@ -68,7 +68,7 @@ def LoadTest(path_test):
     scene_list.sort()
     test_data = np.zeros((len(scene_list), 128, 128, 121))
     for i in range(len(scene_list)):
-        scene_path = path_test + scene_list[i]
+        scene_path = os.path.join(path_test,scene_list[i])
         img = sio.loadmat(scene_path)['data']
         test_data[i, :, :, :] = img
     test_data = torch.from_numpy(np.transpose(test_data, (0, 3, 1, 2)))

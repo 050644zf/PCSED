@@ -6,6 +6,7 @@ The TFNet is a set of transfer functions that are used to predict the optical re
 The script loads training and testing data, and uses the HybNet to predict the optical response of the testing data. 
 The script also logs the training process and saves the trained HybNet.
 """
+from tqdm import trange
 
 # Import necessary libraries
 import arch.HybridNet as HybridNet
@@ -130,7 +131,7 @@ def log(text, file=log_file):
     print(text, file=file)
 
 # Train Params
-for epoch in range(EpochNum):
+for epoch in trange(EpochNum):
     # TODO: 改训练代码
     # Shuffle training data
     gt_batch = shuffle_crop(train_set, BatchSize, crop_size=128)

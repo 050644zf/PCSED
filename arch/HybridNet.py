@@ -234,18 +234,18 @@ class ADMM_HybridNet(HybridNet):
     def forward(self, data_input:torch.Tensor, Noise:NoiseLayer):
         Phi_curves = self.show_hw_weights()
 
-        batch,depth,h,w = data_input.shape()
-        image = torch.ones(batch,h,w,depth)
+        batch,depth,h,w = data_input.size()
+        image = torch.ones(batch,h,w,depth).cuda()
         Phi = self.Phi_model.get_Phi(image,Phi_curves)
-
+        Phi = Phi.permute(0, 3, 1, 2)
         # TODO: 往下面加推理
         Phi_s = torch.sum(Phi ** 2, 1)
         Phi_s[Phi_s == 0] = 1
         input_mask_pred = (Phi, Phi_s)
-        ADMM_net.eval()
+        self.ADMM_net.eval()
         input_meas = torch.sum(Phi * data_input, 1)
         with torch.no_grad():
-            output = ADMM_net(input_meas, input_mask_pred)
+            output = self.ADMM_net(input_meas, input_mask_pred)
 
         return output
 

@@ -220,7 +220,7 @@ class ND_HybridNet(NoisyHybridNet):
 from .ADMM_net import ADMM_net
 from .Mosiac import Mosiac_Layer
 class ADMM_HybridNet(HybridNet):
-    def __init__(self, fnet_path, thick_min, thick_max, size, device, QEC=1):
+    def __init__(self, fnet_path, thick_min, thick_max, size, device, QEC=1, thickness_error=1):
         super(ADMM_HybridNet, self).__init__(fnet_path, thick_min, thick_max, size, device, QEC=QEC)
 
         self.ADMM_net = ADMM_net()
@@ -229,10 +229,15 @@ class ADMM_HybridNet(HybridNet):
         self.Phi_model = Mosiac_Layer((3, 3), [[0, 1, 2], [3, 4, 5], [6, 7, 8]])
         self.Phi_model.to(device)
 
+        self.thickness_error = thickness_error
+
 
 
     def forward(self, data_input:torch.Tensor, Noise = None):
         Phi_curves = self.show_hw_weights()
+
+        if self.thickness_error > 0:
+            Phi_curves = Phi_curves + (torch.rand_like(Phi_curves) * 2 - 1) * Phi_curves
 
         batch,depth,h,w = data_input.size()
         image = torch.ones(batch,h,w,depth).cuda()
@@ -247,6 +252,7 @@ class ADMM_HybridNet(HybridNet):
 
         if not Noise is None:
             input_meas = Noise(input_meas)
+
 
         with torch.no_grad():
             output = self.ADMM_net(input_meas, input_mask_pred)

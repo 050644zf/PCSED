@@ -84,8 +84,7 @@ params_history = [hybnet.show_design_params().detach().cpu().numpy()]
 n_filter=config['TFNum']
 TFNum = fnet_config['TFNum']
 image = torch.ones(BatchSize, 128, 128, 121)
-params = torch.nn.Parameter(torch.rand(n_filter, TFNum) * (params_max - params_min)*0.1 + params_min)
-params = params.cuda()
+
 
 
 BatchSize = admm_config['batch_size']
@@ -143,15 +142,9 @@ for epoch in trange(EpochNum):
         # 自动求导
         gt = Variable(gt_batch).cuda().float()
 
-        # 更新Phi
-        noised_params = params + (torch.rand_like(params) * 2 - 1) * thickness_error
-        # noised_params = torch.rand(n_filter, TFNum) * (params_max - params_min) + params_min
-        # noised_params = params
-        responses = hybnet.fnet(noised_params)
-        Phi_data_tensor = responses
+        params = hybnet.show_design_params()
 
-        Phi = Phi_data_tensor
-
+    
 
         # TODO: 改数据
         out_list, gt_list = [], []

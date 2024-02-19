@@ -17,7 +17,7 @@ fnet:
   params_min: 10
   params_max: 400
 PCSED:
-  TrainingDataSize: 1000000
+  TrainingDataSize: 50
   TestingDataSize: 10000
   IsParallel: false
   EpochNum: 501

@@ -167,7 +167,7 @@ for epoch in range(EpochNum):
                 noise = NoiseLayer_Classic(noise_level)
 
             # Forward pass through HybNet
-            model_out = hybnet(gt, noise=noise)
+            model_out = hybnet(gt, Noise=noise)
             out_list.append(model_out)
 
             DesignParams = hybnet.show_design_params()

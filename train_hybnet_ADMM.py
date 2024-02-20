@@ -75,6 +75,7 @@ scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=l
 loss = torch.tensor([0], device=device_train)
 loss_train = torch.zeros(math.ceil(EpochNum / TestInterval))
 loss_test = torch.zeros(math.ceil(EpochNum / TestInterval))
+loss_test_noise = torch.zeros(math.ceil(EpochNum / TestInterval))
 log_file = open(path / 'TrainingLog.txt', 'w+')
 time_start = time.time()
 time_epoch0 = time_start
@@ -218,10 +219,12 @@ for epoch in trange(EpochNum):
 
         # test under noise
         Out_test_pred, Specs_test = test(hybnet, add_noise=True)
+        loss_tn = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
+        loss_test_noise[epoch // TestInterval] = loss_tn.data
         psnr_list, ssim_list = compute_metrics(Out_test_pred, Specs_test)
         psnr_mean = np.mean(psnr_list)
         ssim_mean = np.mean(ssim_list)
-        log(f'Epoch {epoch}/{EpochNum} training loss: {loss.data:.4f}, testing loss @ {noise_level} noise: {loss_t.data:.4f}, PSNR: {psnr_mean:.2f}, SSIM: {ssim_mean:.4f}, time remain: {time_remain:.0f}s')
+        log(f'Epoch {epoch}/{EpochNum} training loss: {loss.data:.4f}, testing loss @ {noise_level} noise: {loss_tn.data:.4f}, PSNR: {psnr_mean:.2f}, SSIM: {ssim_mean:.4f}, time remain: {time_remain:.0f}s')
 
 time_end = time.time()
 time_total = time_end - time_start
@@ -245,3 +248,13 @@ TargetCurves_FMN = hybnet.run_fnet(DesignParams).double().detach().cpu().numpy()
 scio.savemat(path / 'TargetCurves_FMN.mat', mdict={'TargetCurves_FMN': TargetCurves_FMN})
 Params = DesignParams.double().detach().cpu().numpy()
 scio.savemat(path / 'TrainedParams.mat', mdict={'Params': Params})
+
+
+plt.figure()
+plt.plot(range(0, EpochNum, TestInterval), loss_train.detach().cpu().numpy())
+plt.plot(range(0, EpochNum, TestInterval), loss_test.detach().cpu().numpy())
+plt.plot(range(0, EpochNum, TestInterval), loss_test_noise.detach().cpu().numpy())
+plt.semilogy()
+plt.legend(['Loss_train', 'Loss_test', 'Loss_test_noise'], loc='upper right')
+plt.savefig(path / 'loss')
+plt.show()

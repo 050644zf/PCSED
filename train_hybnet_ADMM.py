@@ -101,7 +101,7 @@ def test(model, add_noise = False):
         light = torch.from_numpy(light).cuda().float()
         light = light.permute(0, 3, 1, 2).contiguous()
 
-        v = test_gt * light
+        test_gt  = test_gt * light
         noise = None
         if add_noise:
             noise = NoiseLayer_Classic(noise_level, seed=42)

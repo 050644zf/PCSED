@@ -26,7 +26,7 @@ PCSED:
   lr: 1.0e-4
   params_lr_coef: 1.0e+4
   lr_decay_step: 100
-  lr_decay_gamma: 0.8
+  lr_decay_gamma: 0.95
   beta_range: 1.0e-3
   TFNum: 9
   #override_filters: ./nets/hybnet/202031027_104727
@@ -42,7 +42,7 @@ noise:
   alpha: 0.
   dc: 0
   bitdepth: 8
-  amp: 0.05
+  amp: -0.05
 ADMM_Net:
   TrainDataPath: ./data/wayho_data
   TestDataPath: ./data/save_wayho

@@ -42,7 +42,7 @@ noise:
   alpha: 0.
   dc: 0
   bitdepth: 8
-  amp: -1
+  amp: 0.05
 ADMM_Net:
   TrainDataPath: ./data/wayho_data
   TestDataPath: ./data/save_wayho

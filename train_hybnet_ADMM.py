@@ -104,7 +104,7 @@ def test(model, add_noise = False):
         test_gt  = test_gt * light
         noise = None
         if add_noise:
-            noise = NoiseLayer_Classic(noise_level, seed=42)
+            noise = NoiseLayer_Classic(0.05, seed=42)
 
         with torch.no_grad():
             model_out = model(test_gt, noise)

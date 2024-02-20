@@ -75,7 +75,7 @@ class HybridNet(nn.Module):
 
         # Initialize the design parameters of the fnet
         self.DesignParams = nn.Parameter(
-            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num])  + thick_min, requires_grad=True)
+            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num])*0.2  + thick_min, requires_grad=True)
 
         # Set the QEC value
         self.QEC = QEC
@@ -247,7 +247,7 @@ class ADMM_HybridNet(HybridNet):
         Phi_s = torch.sum(Phi ** 2, 1)
         Phi_s[Phi_s == 0] = 1
         input_mask_pred = (Phi, Phi_s)
-        self.ADMM_net.eval()
+
         input_meas = torch.sum(Phi * data_input, 1)
 
         if not Noise is None:

@@ -143,9 +143,6 @@ for epoch in trange(EpochNum):
         # 自动求导
         gt = Variable(gt_batch).cuda().float()
 
-        params = hybnet.show_design_params()
-
-    
 
 
         # TODO: 改数据

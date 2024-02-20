@@ -75,7 +75,7 @@ class HybridNet(nn.Module):
 
         # Initialize the design parameters of the fnet
         self.DesignParams = nn.Parameter(
-            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num]) *0.25 + thick_min, requires_grad=True)
+            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num])  + thick_min, requires_grad=True)
 
         # Set the QEC value
         self.QEC = QEC

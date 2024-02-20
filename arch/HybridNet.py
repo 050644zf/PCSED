@@ -326,8 +326,8 @@ class HybnetLoss(nn.Module):
         delta = 0.01
         res = torch.max((params - thick_min - delta) / (-delta), (params - thick_max + delta) / delta)
         range_loss = torch.mean(torch.max(res, torch.zeros_like(res)))
-        print(match_loss, range_loss, total_thick_loss, end=' ')
-        # return match_loss + beta_range * (range_loss +  filter_loss + total_thick_loss * 100)
+        # print(match_loss, range_loss, total_thick_loss, end=' ')
+        return match_loss + beta_range * (range_loss +  filter_loss + total_thick_loss * 100)
     
 class HybnetLoss_plus(HybnetLoss):
     def __init__(self):

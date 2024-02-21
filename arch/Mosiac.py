@@ -91,5 +91,19 @@ class RGGB_Layer(Mosiac_Layer):
 
     
 
+class SFA9(Mosiac_Layer):
+    def __init__(self) -> None:
+        super().__init__(shape=[3,3])
 
+class SFA9_Binary(Mosiac_Layer):
+    def __init__(self) -> None:
+        super().__init__(
+            shape=[4,4],
+            pattern=[
+                [3,0,4,8],
+                [1,2,7,6],
+                [4,8,5,0],
+                [7,6,1,2]
+            ]
+        )
 

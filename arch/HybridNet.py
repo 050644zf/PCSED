@@ -223,7 +223,7 @@ class ADMM_HybridNet(HybridNet):
     def __init__(self, fnet_path, thick_min, thick_max, size, device, QEC=1, thickness_error=1):
         super(ADMM_HybridNet, self).__init__(fnet_path, thick_min, thick_max, size, device, QEC=QEC)
 
-        self.ADMM_net = ADMM_net()
+        self.ADMM_net = ADMM_net(stage=3)
         self.ADMM_net.to(device)
 
         self.Phi_model = Mosiac_Layer((3, 3), [[0, 1, 2], [3, 4, 5], [6, 7, 8]])

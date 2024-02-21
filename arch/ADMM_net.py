@@ -95,30 +95,17 @@ def shift_back_3d(inputs,step=2):
 
 class ADMM_net(nn.Module):
 
-    def __init__(self, shape=(128,128,121)):
+    def __init__(self, shape=(128,128,121), stage=9):
         super(ADMM_net, self).__init__()
 
         self.shape = shape
         self.h, self.w, self.c = shape
+        self.stage = stage
+        self.unets = []
+        self.gammas = []
+        self.unets = torch.nn.ModuleList([Unet(self.c, self.c) for _ in range(self.stage)])
+        self.gammas = torch.nn.ParameterList([torch.nn.Parameter(torch.Tensor([0])) for _ in range(self.stage)])
 
-        self.unet1 = Unet(self.c, self.c)
-        self.unet2 = Unet(self.c, self.c)
-        self.unet3 = Unet(self.c, self.c)
-        self.unet4 = Unet(self.c, self.c)
-        self.unet5 = Unet(self.c, self.c)
-        self.unet6 = Unet(self.c, self.c)
-        self.unet7 = Unet(self.c, self.c)
-        self.unet8 = Unet(self.c, self.c)
-        self.unet9 = Unet(self.c, self.c)
-        self.gamma1 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma2 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma3 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma4 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma5 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma6 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma7 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma8 = torch.nn.Parameter(torch.Tensor([0]))
-        self.gamma9 = torch.nn.Parameter(torch.Tensor([0]))
 
     def forward(self, y, input_mask=None):
         if input_mask == None:
@@ -130,16 +117,15 @@ class ADMM_net(nn.Module):
         theta = At(y,Phi)
         b = torch.zeros_like(Phi)
 
-        for i in range(9):
+        for i in range(self.stage):
             yb = A(theta+b,Phi)
-            x = theta+b + At(torch.div(y-yb,Phi_s+getattr(self, f"gamma{i+1}")),Phi)
+            x = theta+b + At(torch.div(y-yb,Phi_s+self.gammas[i]),Phi)
             x1 = x-b
             # x1 = shift_back_3d(x1)
-            theta = getattr(self, f"unet{i+1}")(x1)
+            theta = self.unets[i](x1)
             # theta = shift_3d(theta)
             b = b- (x-theta)
             x_list.append(theta)
-
         return theta[:, :, :, 0:self.shape[0]]
 
 # class ADMM_net_2D(nn.Module):

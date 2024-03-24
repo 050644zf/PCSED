@@ -6,6 +6,7 @@ import csv
 
 
 matPath = Path(__file__).parent.resolve()/ Path('material')
+# print(__file__)
 
 def load_nk(csv_file,lambda_list,lambda_unit='nm'):
     '''
@@ -31,12 +32,12 @@ def load_nk(csv_file,lambda_list,lambda_unit='nm'):
     
     return np.interp(lambda_list,raw_wl,raw_data)
 
-def make_nx2x2_array(n, a, b, c, d, **kwargs):
+def make_nx2x2_array(n:int, a:torch.Tensor, b:torch.Tensor, c:torch.Tensor, d:torch.Tensor, dtype:torch.dtype, device:torch.device)->torch.Tensor:
     """
     Makes a nx2x2 tensor [[a,b],[c,d]] x n
     """
-
-    my_array = torch.zeros((n, 2, 2), **kwargs)
+    n = int(n)
+    my_array = torch.zeros(n, 2, 2, dtype=dtype, device=device)
     my_array[:, 0, 0] = a
     my_array[:, 0, 1] = b
     my_array[:, 1, 0] = c
@@ -103,6 +104,8 @@ class TMM_predictor(nn.Module):
         d_array = d_array.to(torch.complex64)
 
         num_f = d_array.shape[0]
+        ZEROS, ONES = torch.zeros(num_f*self.num_lam, dtype=torch.complex64, device=device), torch.ones(num_f*self.num_lam, dtype=torch.complex64, device=device)
+
         delta = torch.zeros((num_f, self.num_lam, self.num_layers), dtype=torch.complex64, device=device)
         delta[:,:,[0,-1]] = torch.nan+1j*torch.nan
         for l in range(1,self.num_layers-1):
@@ -117,18 +120,18 @@ class TMM_predictor(nn.Module):
         t_array = self.t_array.repeat(num_f,1)
         r_array = self.r_array.repeat(num_f,1)
 
-        Mtilde_array = make_nx2x2_array(num_f * self.num_lam,1, 0, 0, 1, dtype=torch.complex64, device=device)
+        Mtilde_array = make_nx2x2_array(num_f * self.num_lam, ONES ,ZEROS, ZEROS, ONES, dtype=torch.complex64, device=device)
         for i in range(1, self.num_layers-1):
             _m = (1/t_array[:,i].reshape(-1,1,1)) * torch.matmul(
-                make_nx2x2_array(num_f * self.num_lam, torch.exp(-1j*delta[:,i]), 0, 0, torch.exp(1j*delta[:,i]), dtype=torch.complex64, device=device),
-                make_nx2x2_array(num_f * self.num_lam, 1, r_array[:,i], r_array[:,i], 1, dtype=torch.complex64, device=device)
+                make_nx2x2_array(num_f * self.num_lam, torch.exp(-1j*delta[:,i]), ZEROS, ZEROS, torch.exp(1j*delta[:,i]), dtype=torch.complex64, device=device),
+                make_nx2x2_array(num_f * self.num_lam, ONES, r_array[:,i], r_array[:,i], ONES, dtype=torch.complex64, device=device)
             )
 
             Mtilde_array = torch.matmul(Mtilde_array, _m)
         # Mtilde = np.dot(make_2x2_array(1, r_list[0,1], r_list[0,1], 1,
         #                                dtype=complex)/t_list[0,1], Mtilde)
         Mtilde_array = torch.matmul(
-            make_nx2x2_array(num_f * self.num_lam, 1, r_array[:,0], r_array[:,0], 1, dtype=torch.complex64, device=device)
+            make_nx2x2_array(num_f * self.num_lam, ONES, r_array[:,0], r_array[:,0], ONES, dtype=torch.complex64, device=device)
             /t_array[:,0].reshape(-1,1,1),
             Mtilde_array
         )
@@ -146,17 +149,60 @@ class TMM_predictor(nn.Module):
         del _n, _r, t_list, Mtilde_array, t_array, r_array, delta, d_array,
 
         return T.real.reshape(num_f, self.num_lam)
+    
+MatchLossFcn = nn.MSELoss(reduction='mean')
+
+class Loss(nn.Module):
+    def __init__(self):
+        super(Loss, self).__init__()
+
+    def forward(self, t1, t2, params, thick_min, thick_max, beta_range):
+        """
+        Calculates the loss for the HybridNet model.
+
+        Args:
+            t1 (torch.Tensor): The input tensor for the first image.
+            t2 (torch.Tensor): The input tensor for the second image.
+            params (torch.Tensor): The structure parameters for the model.
+            thick_min (float): The minimum thickness value for the structure parameters.
+            thick_max (float): The maximum thickness value for the structure parameters.
+            beta_range (float): The regularization parameter for the structure parameter range.
+
+        Returns:
+            torch.Tensor: The total loss for the HybridNet model.
+        """
+        # MSE loss
+        match_loss = MatchLossFcn(t1, t2)
+
+        # Filter loss: square of the difference between total thickness 
+        filter_loss = torch.var(torch.sum(params, dim=1))/1000
+
+        # Maximum thickness regularization. Make sure the total thickness is less than 2000 nm.
+        total_thickness_loss = torch.max(torch.sum(params, dim=1) - 2000, torch.zeros_like(torch.sum(params, dim=1)))
+        total_thickness_loss = torch.mean(total_thickness_loss)
+
+
+        # Structure parameter range regularization.
+        # U-shaped function，U([param_min + delta, param_max - delta]) = 0, U(param_min) = U(param_max) = 1。
+        delta = 0.01
+        res = torch.max((params - thick_min - delta) / (-delta), (params - thick_max + delta) / delta)
+        range_loss = torch.mean(torch.max(res, torch.zeros_like(res)))
+
+        return match_loss + beta_range * range_loss + beta_range * filter_loss + beta_range * total_thickness_loss
+    
+
+
 
 if __name__=='__main__':
     import argparse
     import json
     import scipy.io as sio
 
-    parser = argparse.ArgumentParser(description='Calculate the transmission of a thin film stack.')
-    parser.add_argument('-l','--layers', type=int, help='Number of layers in the stack.', required=True)
-    parser.add_argument('-r','--resolution', type=float, help='Spectral Resolution (nm).', required=True)
-    parser.add_argument('-t','--thickness',nargs=2, type=float, help='Thickness of each layer.', required=True)
-    parser.add_argument('path',metavar='path', nargs='?', type=str, default='.', help='Path to save the model.')
+    parser = argparse.ArgumentParser(description='生成用于计算多层镀膜的透过率的TMM_predictor模型。')
+    parser.add_argument('-l','--layers', type=int, default=20, help='镀膜层数', required=True)
+    parser.add_argument('-r','--resolution', type=float, help='光谱分辨率 (nm)', required=True)
+    parser.add_argument('-t','--thickness',nargs=2, type=float, default=[10,400],help='每层的厚度区间，例如 10 400为10-400nm', required=True)
+    parser.add_argument('path',metavar='path', nargs='?', type=str, default='.', help='模型的保存位置')
 
     args = parser.parse_args()
 
@@ -173,7 +219,7 @@ if __name__=='__main__':
             'EndWL': 1000 + float(args.resolution),
             'Resolution': args.resolution,
             'params_min': min_thickness,
-            'params_max': max_thickness
+            'params_max': max_thickness,
         }
     }
 
@@ -207,8 +253,19 @@ if __name__=='__main__':
 
     predictor = TMM_predictor(lambda_list, n_array)
 
+    # export to torchscript
+    predictor_script = torch.jit.script(predictor)
+    torch.jit.save(predictor_script, folder/'fnet_jit.pt')
+
+    # test if the torchscript model works
+    predictor_script.eval()
+    d_array = torch.rand((9, num_layers)) * (max_thickness - min_thickness) + min_thickness
+    T = predictor_script(d_array)
+    assert T.shape == (9, lambda_list.shape[0]), 'torchscript model does not work'
+
     # export to .pkl
     torch.save(predictor, folder/'fnet.pkl')
+
 
     # export to .json
     with open(folder/'config.json', 'w', encoding='utf-8') as f:

@@ -30,13 +30,29 @@ from load_config import *
 # copy this file to the result folder
 shutil.copy(Path(__file__).resolve(), path / Path(__file__).name)
 
+fixed_chs = config.get("fixed_chs", None)
+n_FIXED = 0
+if not fixed_chs is None:
+    fixed_chs = scio.loadmat(fixed_chs)["data"]
+    n_FIXED = fixed_chs.shape[0]
+    fixed_chs = torch.from_numpy(fixed_chs).float().to(device_train)
+    
+
+
 # Set size of HybNet and create HybNet object
 hybnet_size = [SpectralSliceNum, TFNum, 500, 500, SpectralSliceNum]
-hybnet = HybridNet.HybridNet(fnet_path, params_min, params_max, hybnet_size, device_train, QEC=QEC)
+
+
+hybnet = HybridNet.HybridNet(fnet_path, params_min, params_max, hybnet_size, device_train, QEC=QEC, fixed_chs=fixed_chs)
+
+
 
 # Override filters if specified in configuration
 if config.get("override_filters"):
-    design_params = scio.loadmat(Path(config.get("override_filters"))/"TrainedParams.mat")["Params"]
+    if config.get("override_filters").endswith(".mat"):
+        design_params = scio.loadmat(Path(config.get("override_filters")))["Params"]
+    else:
+        design_params = scio.loadmat(Path(config.get("override_filters"))/"TrainedParams.mat")["Params"]
     hybnet.set_design_params(torch.tensor(design_params, device=device_train, dtype=dtype))
     hybnet.DesignParams.requires_grad = False
     hybnet.eval_fnet()
@@ -126,13 +142,13 @@ scio.savemat(path / 'TargetCurves_FMN.mat', mdict={'TargetCurves_FMN': TargetCur
 Params = DesignParams.double().detach().cpu().numpy()
 scio.savemat(path / 'TrainedParams.mat', mdict={'Params': Params})
 
-plt.figure()
-for i in range(TFNum):
-    plt.subplot(math.ceil(math.sqrt(TFNum)), math.ceil(math.sqrt(TFNum)), i + 1)
-    plt.plot(WL, TargetCurves[i, :], WL, TargetCurves_FMN[i, :])
-    plt.ylim(0, 1)
-plt.savefig(path / 'ROFcurves')
-plt.show()
+# plt.figure()
+# for i in range(TFNum):
+#     plt.subplot(math.ceil(math.sqrt(TFNum)), math.ceil(math.sqrt(TFNum)), i + 1)
+#     plt.plot(WL, TargetCurves[i, :], WL, TargetCurves_FMN[i, :])
+#     plt.ylim(0, 1)
+# plt.savefig(path / 'ROFcurves')
+# plt.show()
 
 Output_train = hybnet(Specs_train[0, :].to(device_test).unsqueeze(0)).squeeze(0)
 FigureTrainLoss = HybridNet.MatchLossFcn(Specs_train[0, :].to(device_test), Output_train)

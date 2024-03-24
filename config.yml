@@ -1,45 +1,54 @@
-fnet:
-  model: original
-  TrainingDataSize: 1000000
-  TestingDataSize: 5000
-  IsParallel: false
-  EpochNum: 2001
-  TestInterval: 20
-  BatchSize: 500000
-  lr: 1.0e-3
-  lr_decay_step: 200
-  lr_decay_gamma: 0.9
-  TrainDataPath: ./data/coatings/L30_R5.0_T10-400_1M.mat
-  TestDataPath: ./data/coatings/L30_R5.0_T10-400_50K.mat
-  StartWL: 400
-  EndWL: 1005
-  Resolution: 5
-  params_min: 10
-  params_max: 400
-PCSED:
-  TrainingDataSize: 1000000
-  TestingDataSize: 10000
-  IsParallel: false
-  EpochNum: 501
-  TestInterval: 10
-  BatchSize: 100000
-  lr: 1.0e-4
-  params_lr_coef: 1.0e+4
-  lr_decay_step: 100
-  lr_decay_gamma: 0.8
-  beta_range: 1.0e-3
-  TFNum: 9
-  #override_filters: ./nets/hybnet/202031027_104727
-  QEC: ./data/QEC.mat
-  fnet_folder: ./nets/fnet/TMM_L20_R5.0
-  TrainDataPath: ./data/ICVL_400-1000-5_1M.mat
-  TestDataPath: ./data/ICVL_400-1000-5_100K.mat
-  History: true
-  ADMM_net: ./nets/ADMM_net/20240125_220605/admm_net.pkl
-  thickness_error: 0.
-noise:
-  SNR: 60
-  alpha: 0.
-  dc: 0
-  bitdepth: 8
-  amp: 0.05
+fnet:                       # 训练PCSED中FMN的配置，如果使用TMM，则忽略这部分
+  model: original           # 使用的FMN模型，在arch/fnet.py 中配置
+  TrainingDataSize: 1000000 # 训练数据大小
+  TestingDataSize: 5000    # 测试数据大小
+  IsParallel: false        # 是否使用多GPU
+  EpochNum: 2001            # 训练轮数
+  TestInterval: 20      # 测试间隔
+  BatchSize: 500000       # 批大小
+  lr: 1.0e-3        # 学习率
+  lr_decay_step: 200    # 学习率衰减步数
+  lr_decay_gamma: 0.9  # 学习率衰减因子
+  TrainDataPath: ./data/coatings/L30_R5.0_T10-400_1M.mat  # 训练数据路径
+  TestDataPath: ./data/coatings/L30_R5.0_T10-400_50K.mat  # 测试数据路径
+  StartWL: 400         # 起始波长
+  EndWL: 1005         # 终止波长（不包含）
+  Resolution: 5      # 分辨率
+  params_min: 10     # 最小厚度
+  params_max: 400   # 最大厚度
+PCSED:                   # 训练PCSED、PSSED的配置
+  # -----------------以下为PCSED的配置-----------------
+  TrainingDataSize: 1000000 # 训练数据大小（光谱条数）
+  TestingDataSize: 10000  # 测试数据大小（光谱条数）
+  IsParallel: false      # 是否使用多GPU
+  EpochNum: 2        # 训练轮数
+  TestInterval: 1     # 测试间隔
+  BatchSize: 1000000  # 批大小
+  lr: 1.0e-4      # 学习率
+  lr_decay_step: 50 # 学习率衰减步数
+  lr_decay_gamma: 0.8 # 学习率衰减因子
+  beta_range: 1.0e-3  # PCSED的loss中beta值
+  TFNum: 9      # 通道数
+  # -----------------以下为PSSED的配置-----------------
+  params_lr_coef: 1.0e+4  # 设计参数相对于DNN的学习率倍数
+  # override_filters: ./nets/hybnet/202031027_104727 # 初始的设计参数，如果需要随机设计参数则注释掉
+  fixed_chs: ./results/CIE_NIR.mat # 固定通道的光谱响应，注释则全为待优化通道
+  QEC: ./data/QEC.mat # 相机量子效率等系统其他响应
+  fnet_folder: ./nets/fnet/TMM_L20_R5.0 # FMN/TMM模型路径
+  TrainDataPath: ./data/wayho_outdoor_5nm.mat # 训练数据路径
+  TestDataPath: ./data/wayho_indoor_5nm.mat # 测试数据路径
+  LightPath: ./data/light067.mat  # 光源数据路径，注释则认为数据已经是光强值了
+  History: true # 是否存储参数的优化过程
+  total_thickness_range: 0.01 #总膜厚变化范围占平均总膜厚比例
+  # -----------------以下为测试配置，未能实现---------------
+  ADMM_net: ./nets/ADMM_net/20240125_220605/admm_net.pkl  # ADMM网络路径
+  thickness_error: 0. # 厚度误差
+noise:  # arch/NoiseLayer.py 中噪声层配置，仅用于测试，实际训练时不使用
+  # ---以下为各噪声层通用配置---
+  bitdepth: 8 # 位深
+  # ---以下为NoiseLayer噪声配置---
+  SNR: 60 # 信噪比
+  alpha: 0. # 噪声系数
+  dc: 0 # 暗电流
+  # ---以下为NoiseLayer_Classic噪声配置---
+  amp: 0.05 # AWGN的幅度占信号强度比值

@@ -31,7 +31,7 @@ if args.nettype == 'ADMM_Net':
         if args.nettype == 'ADMM_Net':
             admm_config = c['ADMM_Net']
 else:
-    with open('config.yml', 'r') as f:
+    with open('config.yml', 'r', encoding='utf-8') as f:
         c = yaml.safe_load(f)
         config: dict = c['PCSED']
         noise_config = c['noise']
@@ -90,25 +90,43 @@ Resolution = fnet_config['Resolution']
 WL = np.arange(StartWL, EndWL, Resolution)
 SpectralSliceNum = WL.size
 
+if config.get('LightPath'):
+    LightMat = scio.loadmat(config['LightPath'])['data']
+    LightNum = LightMat.shape[0]
+else:
+    LightMat = np.ones([1, SpectralSliceNum], dtype=np.float32)
+
 if args.nettype == 'ADMM_Net':
     pass
 else:
     # Load training and testing data
-    Specs_train = torch.zeros([TrainingDataSize, SpectralSliceNum], device=device_data, dtype=dtype)
-    Specs_test = torch.zeros([TestingDataSize, SpectralSliceNum], device=device_test, dtype=dtype)
+    Specs_train = torch.zeros([TrainingDataSize * LightNum, SpectralSliceNum], device=device_data, dtype=dtype)
+    Specs_test = torch.zeros([TestingDataSize * LightNum, SpectralSliceNum], device=device_test, dtype=dtype)
+    LightMat = torch.tensor(LightMat, device=device_data, dtype=dtype)
     data = scio.loadmat(config['TrainDataPath'])
     Specs_all = np.array(data['data'])
     np.random.shuffle(Specs_all)
-    Specs_train = torch.tensor(Specs_all[0:TrainingDataSize, :])
+    Specs_all = torch.tensor(Specs_all[0:TrainingDataSize, :])
+    for i in range(LightNum):
+        Specs_train[i * TrainingDataSize: (i + 1) * TrainingDataSize, :] = Specs_all *   LightMat[i, :]
+    
+    LightMat = torch.tensor(LightMat, device=device_test, dtype=dtype)
     data = scio.loadmat(config['TestDataPath'])
     Specs_all = np.array(data['data'])
+    TestingDataSize = min(TestingDataSize, Specs_all.shape[0])
     np.random.shuffle(Specs_all)
-    Specs_test = torch.tensor(
-        Specs_all[0:TestingDataSize, :], device=device_test)
+    Specs_all = torch.tensor(Specs_all[0:TestingDataSize, :], device=device_test)
+    for i in range(LightNum):
+        Specs_test[i * TestingDataSize: (i + 1) * TestingDataSize, :] = Specs_all * LightMat[i, :]
     del Specs_all, data
 
+print(f'SpectralSliceNum: {SpectralSliceNum} TrainingDataSize: {TrainingDataSize} TestingDataSize: {TestingDataSize} LightNum: {LightNum}')
+
+TrainingDataSize = TrainingDataSize * LightNum
+TestingDataSize = TestingDataSize * LightNum
+
 # Check that the number of spectral slices matches the size of the training data
-    assert SpectralSliceNum == Specs_train.size(1)
+assert SpectralSliceNum == Specs_train.size(1)
 
 # Load QEC data if specified in configuration
 QEC = 1

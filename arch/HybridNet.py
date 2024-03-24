@@ -4,9 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 from torch.nn.modules.module import Module
+from torch.optim.optimizer import Optimizer
 from tmm_torch import TMM_predictor
 import numpy as np
 from .NoiseLayer import NoiseLayer
+import matplotlib.pyplot as plt
 
 import scipy.io as scio
 
@@ -57,13 +59,16 @@ class HybridNet(nn.Module):
     - SWNet (nn.Module): The switchable neural network.
     """
 
-    def __init__(self, fnet_path, thick_min, thick_max, size, device, QEC=1):
+    def __init__(self, fnet_path, thick_min, thick_max, size, device, QEC=1, fixed_chs=None , seed=-1):
         super(HybridNet, self).__init__()
 
         # Load the pre-trained fnet model
         self.fnet = torch.load(fnet_path)
         self.fnet.to(device)
         self.fnet.eval()
+
+        self.fixed_chs = fixed_chs
+        self.n_fixed = 0 if fixed_chs is None else fixed_chs.size(0)
 
         # Determine the number of layers in the fnet
         if isinstance(self.fnet, TMM_predictor):
@@ -74,8 +79,16 @@ class HybridNet(nn.Module):
             self.tf_layer_num = self.fnet.state_dict()['0.weight'].data.size(1)
 
         # Initialize the design parameters of the fnet
+            
+        if seed > 0:
+            rng_state = torch.random.get_rng_state()
+            torch.manual_seed(seed)
+        
         self.DesignParams = nn.Parameter(
-            (thick_max - thick_min) * torch.rand([size[1], self.tf_layer_num])*0.2  + thick_min, requires_grad=True)
+            (thick_max - thick_min) * torch.rand([size[1] - self.n_fixed, self.tf_layer_num])  + thick_min, requires_grad=True)
+
+        if seed > 0:
+            torch.random.set_rng_state(rng_state)
 
         # Set the QEC value
         self.QEC = QEC
@@ -99,7 +112,7 @@ class HybridNet(nn.Module):
         """
         sampled = func.linear(
             data_input, 
-            self.fnet(self.DesignParams) * self.QEC,
+            self.show_hw_weights(),
             None
         )
         return self.SWNet(sampled)
@@ -113,23 +126,22 @@ class HybridNet(nn.Module):
         """
         return self.DesignParams
     
-    def set_design_params(self,design_params:torch.Tensor):
+    def set_design_params(self,design_params:torch.Tensor, n_ch:int=-1):
         """
         Sets the design parameters of the fnet.
 
         Args:
         - design_params (torch.Tensor): The new design parameters.
+        - n_ch (int): The number of channels to set the design parameters to. -1 to set all channels.
 
         Raises:
         - AssertionError: If the size of the new design parameters does not match the size of the current design parameters.
         """
-        try:
-            assert design_params.size() == self.DesignParams.size()
-        except AssertionError:
-            print(f"design_params.size() = {design_params.size()}, self.DesignParams.size() = {self.DesignParams.size()}")
-            raise AssertionError
-
-        self.DesignParams.data = design_params.data
+        assert design_params.size() == self.DesignParams.size()
+        if n_ch >= 0:
+            self.DesignParams.data[:n_ch] = design_params[:n_ch]
+        else:
+            self.DesignParams.data = design_params
     
     def show_hw_weights(self):
         """
@@ -138,7 +150,10 @@ class HybridNet(nn.Module):
         Returns:
         - The hardware weights of the fnet.
         """
-        return self.fnet(self.DesignParams)* self.QEC
+        if self.fixed_chs is None:
+            return self.fnet(self.DesignParams)* self.QEC
+        else:
+            return torch.concatenate((self.fixed_chs, self.fnet(self.DesignParams))) * self.QEC
 
     def eval_fnet(self):
         """
@@ -178,6 +193,27 @@ class HybridNet(nn.Module):
         """
         assert hw_weights_input.size(0) == self.DesignParams.size(0)
         return self.SWNet(func.linear(data_input, hw_weights_input, None))
+    
+    def plot_params(self)->tuple[plt.Figure, plt.Axes]:
+        """
+        Plots the design parameters of the fnet.
+
+        Returns:
+        - ax (matplotlib.axes._subplots.AxesSubplot): The plot of the design parameters.
+        """
+        
+        # plot the final params using stacked bar
+        fig, ax = plt.subplots()
+        
+        n_layers = self.DesignParams.size(1)
+        n_TF = self.DesignParams.size(0)
+        bottom = np.zeros(n_TF)
+        params = self.DesignParams.detach().cpu().numpy()
+        for i in range(n_layers):
+            color = 'g' if i%2 else 'orange'
+            ax.bar(np.arange(n_TF), params[:,i], bottom=bottom, color=color)
+            bottom += params[:,i]
+        return fig, ax
 
 
 class NoisyHybridNet(HybridNet):
@@ -273,16 +309,18 @@ class ADMM_HybridNet(HybridNet):
 
 
 
-
+def RMSE(t1, t2):
+    return torch.mean((t1 - t2) ** 2) ** 0.5
 
 def MRAE(t1, t2):
-    return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
+    # return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
+    return 0
 
+def MatchLossFcn(t1, t2):
+    return RMSE(t1, t2) + MRAE(t1, t2)
 
-MatchLossFcn = nn.MSELoss(reduction='mean')
+# MatchLossFcn = 
 # MatchLossFcn = MRAE
-
-
 
 
 class HybnetLoss(nn.Module):
@@ -310,8 +348,12 @@ class HybnetLoss(nn.Module):
         
 
         # Filter loss: square of the difference between total thickness 
-        filter_loss = torch.var(torch.sum(params, dim=1)/torch.sum(params, dim=1).max())
-        filter_loss = 0
+        # filter_loss = torch.var(torch.sum(params, dim=1)/torch.sum(params, dim=1).max())
+        # filter_loss = 0
+
+        max_thick, min_thick, mean_thick = torch.sum(params, dim=1).max(), torch.sum(params, dim=1).min(), torch.sum(params, dim=1).mean()
+        filter_loss =  (max_thick - min_thick) / mean_thick -0.1
+        filter_loss = torch.max(torch.zeros_like(filter_loss), filter_loss)
 
         # Total thickness regularization.
         
@@ -327,7 +369,7 @@ class HybnetLoss(nn.Module):
         res = torch.max((params - thick_min - delta) / (-delta), (params - thick_max + delta) / delta)
         range_loss = torch.mean(torch.max(res, torch.zeros_like(res)))
         # print(match_loss, range_loss, total_thick_loss, end=' ')
-        return match_loss + beta_range * (range_loss +  filter_loss + total_thick_loss * 100)
+        return match_loss + range_loss + beta_range * (filter_loss*10 + total_thick_loss * 100)
     
 class HybnetLoss_plus(HybnetLoss):
     def __init__(self):
@@ -338,6 +380,7 @@ class HybnetLoss_plus(HybnetLoss):
         original_loss = super(HybnetLoss_plus, self).forward(*args)
         beta_range = args[-1]
         rloss = 0
+        sloss = 0
         # # calculate the cosine similarity between the responses
         # if not responses is None:
         #     TFNum = responses.size(0)
@@ -348,33 +391,49 @@ class HybnetLoss_plus(HybnetLoss):
 
         #     rloss = rloss **2
 
-        # calculate the gram matrix of the responses_DeCorrelation1
         if not responses is None:
             D = torch.matmul(responses, dictionary)
             # D = responses
             D = D / torch.norm(D, dim=(0,1))
             gram = torch.matmul(D.T, D)
+
+            # 平均不相关性 (~0.193)
             rloss = torch.mean((gram - torch.eye(gram.size(0), device=gram.device))**2)
 
-        # calculate the gram matrix of the responses_DeCorrelation
-        # if not responses is None:
-        #     D = torch.matmul(responses, dictionary)
-        #     D = D / torch.norm(D, dim=(0,1))
-        #     noy, nos = D.shape
-        #     gram = torch.matmul(D.T, D)
-        #     Sigma, V = torch.linalg.eig(gram)
-        #     Sigma = Sigma.real
-        #     V = V.real
-        #     # Sigma[torch.abs(Sigma) > 1e-10] = nos / noy
-        #     # using torch.where instead
-        #     Sigma = torch.where(torch.abs(Sigma) > 1e-10, nos / noy, Sigma)
-        #     newGram = torch.mm(torch.mm(V, torch.diag_embed(Sigma)), V.t())
-        #     rloss = torch.mean(gram-newGram)
-        # print(original_loss, rloss *beta_range *10)
-        return original_loss + rloss  *beta_range *10
+            # 最大不相关性 (~)
+            # rloss = torch.max((gram - torch.eye(gram.size(0), device=gram.device))**2)
+
+            # rloss = torch.max(torch.zeros_like(rloss), rloss - 0.10)
+            # print(rloss.item())
+
+            # sloss = 0.5-torch.min(torch.mean(responses, dim=0))
+            # sloss = torch.max(torch.zeros_like(sloss), sloss)
+
+
+        return original_loss + rloss 
 
 
 
 
 
 
+class Scheduler_net(torch.optim.lr_scheduler.LRScheduler):
+    def __init__(self, optimizer, step_size, gamma, begin_epoch=0 , last_epoch=-1):
+        self.step_size = step_size
+        self.gamma = gamma
+        self.begin_epoch = begin_epoch
+        self.init_lr = [group['lr'] for group in optimizer.param_groups]
+        super(Scheduler_net, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        # print(self.last_epoch)
+        if self.last_epoch < self.begin_epoch:
+            return [0 for _ in self.optimizer.param_groups]
+        else:
+            valid_step = self.last_epoch - self.begin_epoch
+            if valid_step == 0:
+                return self.init_lr
+            if (valid_step % self.step_size != 0):
+                return [group['lr'] for group in self.optimizer.param_groups]
+            return [group['lr'] * self.gamma
+                    for group in self.optimizer.param_groups]

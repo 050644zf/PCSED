@@ -313,8 +313,8 @@ def RMSE(t1, t2):
     return torch.mean((t1 - t2) ** 2) ** 0.5
 
 def MRAE(t1, t2):
-    # return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
-    return 0
+    return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
+    # return 0
 
 def MatchLossFcn(t1, t2):
     return RMSE(t1, t2) + MRAE(t1, t2)
@@ -352,7 +352,7 @@ class HybnetLoss(nn.Module):
         # filter_loss = 0
 
         max_thick, min_thick, mean_thick = torch.sum(params, dim=1).max(), torch.sum(params, dim=1).min(), torch.sum(params, dim=1).mean()
-        filter_loss =  (max_thick - min_thick) / mean_thick -0.1
+        filter_loss =  (max_thick - min_thick) / mean_thick -0.01
         filter_loss = torch.max(torch.zeros_like(filter_loss), filter_loss)
 
         # Total thickness regularization.

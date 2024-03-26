@@ -1,4 +1,5 @@
 # Import necessary libraries
+import h5py
 import torch
 import scipy.io as scio
 import numpy as np
@@ -103,8 +104,10 @@ else:
     Specs_train = torch.zeros([TrainingDataSize * LightNum, SpectralSliceNum], device=device_data, dtype=dtype)
     Specs_test = torch.zeros([TestingDataSize * LightNum, SpectralSliceNum], device=device_test, dtype=dtype)
     LightMat = torch.tensor(LightMat, device=device_data, dtype=dtype)
-    data = scio.loadmat(config['TrainDataPath'])
-    Specs_all = np.array(data['data'])
+    with h5py.File('train_pssed.mat', 'r') as file:
+        Specs_all = file['combined_array'][:].T
+    # data = scio.loadmat(config['TrainDataPath'])
+    # Specs_all = np.array(data['data'])
     np.random.shuffle(Specs_all)
     Specs_all = torch.tensor(Specs_all[0:TrainingDataSize, :])
     for i in range(LightNum):

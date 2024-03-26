@@ -96,6 +96,7 @@ if config.get('LightPath'):
     LightNum = LightMat.shape[0]
 else:
     LightMat = np.ones([1, SpectralSliceNum], dtype=np.float32)
+    LightNum = LightMat.shape[0]
 
 if args.nettype == 'ADMM_Net':
     pass
@@ -104,7 +105,7 @@ else:
     Specs_train = torch.zeros([TrainingDataSize * LightNum, SpectralSliceNum], device=device_data, dtype=dtype)
     Specs_test = torch.zeros([TestingDataSize * LightNum, SpectralSliceNum], device=device_test, dtype=dtype)
     LightMat = torch.tensor(LightMat, device=device_data, dtype=dtype)
-    with h5py.File('train_pssed.mat', 'r') as file:
+    with h5py.File(config['TrainDataPath'], 'r') as file:
         Specs_all = file['combined_array'][:].T
     # data = scio.loadmat(config['TrainDataPath'])
     # Specs_all = np.array(data['data'])

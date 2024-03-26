@@ -114,7 +114,8 @@ else:
     for i in range(LightNum):
         Specs_train[i * TrainingDataSize: (i + 1) * TrainingDataSize, :] = Specs_all *   LightMat[i, :]
     
-    LightMat = torch.tensor(LightMat, device=device_test, dtype=dtype)
+    # LightMat = torch.tensor(LightMat, device=device_test, dtype=dtype)
+    LightMat = LightMat.clone().detach().to(device_test).type(dtype)
     data = scio.loadmat(config['TestDataPath'])
     Specs_all = np.array(data['data'])
     TestingDataSize = min(TestingDataSize, Specs_all.shape[0])

@@ -313,8 +313,8 @@ def RMSE(t1, t2):
     return torch.mean((t1 - t2) ** 2) ** 0.5
 
 def MRAE(t1, t2):
-    return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
-    # return 0
+    # return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
+    return 0
 
 def MatchLossFcn(t1, t2):
     return RMSE(t1, t2) + MRAE(t1, t2)

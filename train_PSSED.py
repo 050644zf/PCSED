@@ -91,7 +91,6 @@ for epoch in range(EpochNum):
         optimizer_net.zero_grad(),optimizer_params.zero_grad()
         loss.backward(retain_graph=True)
         optimizer_net.step(),optimizer_params.step()
-        print(i)
     scheduler_net.step(), scheduler_params.step()
     if epoch % TestInterval == 0:
         # Evaluate HybNet on testing data

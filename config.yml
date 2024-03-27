@@ -39,7 +39,7 @@ PCSED:                   # 训练PCSED、PSSED的配置
   TestDataPath: ./data/wayho_indoor_5nm.mat # 测试数据路径
   LightPath: ./data/light_4.mat  # 光源数据路径，注释则认为数据已经是光强值了
   History: true # 是否存储参数的优化过程
-  total_thickness_range: 0.01 #总膜厚变化范围占平均总膜厚比例
+  total_thickness_range: 0.1 #总膜厚变化范围占平均总膜厚比例
   # -----------------以下为测试配置，未能实现---------------
   ADMM_net: ./nets/ADMM_net/20240125_220605/admm_net.pkl  # ADMM网络路径
   thickness_error: 0. # 厚度误差

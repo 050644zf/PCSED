@@ -87,7 +87,7 @@ for epoch in range(EpochNum):
         DesignParams = hybnet.show_design_params()
         responses = hybnet.show_hw_weights()
         # Calculate loss and backpropagate
-        loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range,responses=responses)
+        loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range, total_thickness_range,responses=responses)
         optimizer_net.zero_grad(),optimizer_params.zero_grad()
         loss.backward(retain_graph=True)
         optimizer_net.step(),optimizer_params.step()

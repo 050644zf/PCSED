@@ -58,7 +58,7 @@ lr_decay_gamma = config['lr_decay_gamma']
 beta_range = config['beta_range']
 TFNum = config['TFNum']
 thickness_error = config['thickness_error']
-
+total_thickness_range = config['total_thickness_range']
 # Create folder to save trained HybNet
 folder_name = time.strftime("%Y%m%d_%H%M%S", time.localtime())
 

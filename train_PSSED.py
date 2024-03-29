@@ -6,6 +6,7 @@ The TFNet is a set of transfer functions that are used to predict the optical re
 The script loads training and testing data, and uses the HybNet to predict the optical response of the testing data. 
 The script also logs the training process and saves the trained HybNet.
 """
+import random
 
 # Import necessary libraries
 import arch.HybridNet as HybridNet
@@ -74,51 +75,116 @@ log_file = open(path / 'TrainingLog.txt', 'w+')
 time_start = time.time()
 time_epoch0 = time_start
 params_history = [hybnet.show_design_params().detach().cpu().numpy()]
+loss_temp = 0
+num = 0
 
-# Train HybNet
-for epoch in range(EpochNum):
-    # Shuffle training data
-    Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
-    for i in range(0, TrainingDataSize // BatchSize):
-        # Get batch of training data
-        Specs_batch = Specs_train[i * BatchSize: i * BatchSize + BatchSize, :].to(device_train)
-        # Forward pass through HybNet
-        Output_pred = hybnet(Specs_batch)
-        DesignParams = hybnet.show_design_params()
-        responses = hybnet.show_hw_weights()
-        # Calculate loss and backpropagate
-        loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range, total_thickness_range,responses=responses)
-        optimizer_net.zero_grad(),optimizer_params.zero_grad()
-        loss.backward(retain_graph=True)
-        optimizer_net.step(),optimizer_params.step()
-    scheduler_net.step(), scheduler_params.step()
-    if epoch % TestInterval == 0:
-        # Evaluate HybNet on testing data
-        hybnet.to(device_test)
-        hybnet.eval()
-        Out_test_pred = hybnet(Specs_test)
-        hybnet.to(device_train)
-        hybnet.train()
-        hybnet.eval_fnet()
+t_num = 0
+Tinit = 100000
+Tmin = 1e-5
+delta = 0.9
 
-        DesignParams = hybnet.show_design_params()
-        if config.get("History"):
-            params_history.append(DesignParams.detach().cpu().numpy())
-            scio.savemat(path / "params_history.mat", {"params_history": params_history})
+while Tinit > Tmin:
+    # Train HybNet
+    loss_sum = 0
+    for epoch in range(EpochNum):
+        # Shuffle training data
+        Specs_train = Specs_train[torch.randperm(TrainingDataSize), :]
+        for i in range(0, TrainingDataSize // BatchSize):
+            # Get batch of training data
+            Specs_batch = Specs_train[i * BatchSize: i * BatchSize + BatchSize, :].to(device_train)
+            # Forward pass through HybNet
+            Output_pred = hybnet(Specs_batch)
+            DesignParams = hybnet.show_design_params()
+            responses = hybnet.show_hw_weights()
+            # Calculate loss and backpropagate
+            loss = LossFcn(Specs_batch, Output_pred, DesignParams, params_min.to(device_train), params_max.to(device_train), beta_range, total_thickness_range,responses=responses)
+            optimizer_net.zero_grad(),optimizer_params.zero_grad()
+            loss.backward(retain_graph=True)
+            optimizer_net.step(),optimizer_params.step()
+        scheduler_net.step(), scheduler_params.step()
 
-        loss_train[epoch // TestInterval] = loss.data
-        loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
-        loss_test[epoch // TestInterval] = loss_t.data
-        if epoch == 0:
-            time_epoch0 = time.time()
-            time_remain = (time_epoch0 - time_start) * EpochNum
-        else:
-            time_remain = (time.time() - time_epoch0) / epoch * (EpochNum - epoch)
-        print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_net.get_lr()[0], '| params learn rate: %.8f' % scheduler_params.get_lr()[0], '| remaining time: %.0fs (to %s)'
-              % (time_remain, time.strftime('%H:%M:%S', time.localtime(time.time() + time_remain))))
-        print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
-              '| learn rate: %.8f' % scheduler_net.get_lr()[0],  '| params learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
+        if epoch % TestInterval == 0:
+            # Evaluate HybNet on testing data
+            hybnet.to(device_test)
+            hybnet.eval()
+            Out_test_pred = hybnet(Specs_test)
+            hybnet.to(device_train)
+            hybnet.train()
+            hybnet.eval_fnet()
+
+            DesignParams = hybnet.show_design_params()
+            if config.get("History"):
+                params_history.append(DesignParams.detach().cpu().numpy())
+                scio.savemat(path / "params_history.mat", {"params_history": params_history})
+
+            loss_train[epoch // TestInterval] = loss.data
+            loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
+            loss_test[epoch // TestInterval] = loss_t.data
+            if epoch == 0:
+                time_epoch0 = time.time()
+                time_remain = (time_epoch0 - time_start) * EpochNum
+            else:
+                time_remain = (time.time() - time_epoch0) / epoch * (EpochNum - epoch)
+            print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
+                  '| learn rate: %.8f' % scheduler_net.get_lr()[0], '| params learn rate: %.8f' % scheduler_params.get_lr()[0], '| remaining time: %.0fs (to %s)'
+                  % (time_remain, time.strftime('%H:%M:%S', time.localtime(time.time() + time_remain))))
+            print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
+                  '| learn rate: %.8f' % scheduler_net.get_lr()[0],  '| params learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
+
+        if epoch > 400:
+            hybnet.to(device_test)
+            hybnet.eval()
+
+            # y_pred = fnet(Specs_test.to(device_test), sensor_C.to(device_train),
+            #               lens_C.to(device_train))
+            # error = (torch.randint(0, 100, (y_pred.shape[0], 9)) * 0.001).to(device_test) - 0.05
+            # y_pred = y_pred * error + y_pred
+            Out_test_pred = hybnet(Specs_test)
+            loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
+            loss_sum = loss_t + loss_sum
+            hybnet.to(device_train)
+            hybnet.train()
+            hybnet.eval_fnet()
+
+        if epoch % TestInterval == 0:
+            loss_t = loss_sum / 10
+            index = torch.randperm(TrainingDataSize)
+            Specs_train = Specs_train[index, :]
+            # Specs_train_r = Specs_train_r[index, :]
+
+            if epoch % 500 == 0:
+                if (num == 0):
+                    loss_temp = loss_t
+                    temp_path = os.path.join(path, str(num) + 'hybnet.pkl')
+                    torch.save(hybnet, temp_path)
+                    t_num = 0
+
+                elif (loss_t < loss_temp):
+                    loss_temp = loss_t
+                    temp_path = os.path.join(path, str(num) + 'hybnet.pkl')
+                    torch.save(hybnet, temp_path)
+                    t_num = num
+
+                elif (loss_t >= loss_temp):
+                    p = 1 / (math.exp((loss_t - loss_temp) / Tinit) + 1)
+                    print("p:", p)
+                    if (random.random() < p):
+                        loss_temp = loss_t
+                        temp_path = os.path.join(path, str(num) + 'hybnet.pkl')
+                        torch.save(hybnet, temp_path)
+                        t_num = num
+                    else:
+                        # fnet = torch.load(path + str(num-1) + 'fnet.pkl')
+                        # DNN = torch.load(path + str(num-1) + 'DNN.pkl')
+                        temp_path = os.path.join(path, str(t_num) + 'hybnet.pkl')
+                        hybnet = torch.load(temp_path)
+                        print(
+                            "------------------------------------------------tihun----------------------------------------------------------------")
+                print("num: ", num + 1, "Tinit: ", Tinit, "loss: ", loss_t, "minloss: ", loss_temp)
+                hybnet.set_tuihuo_params()
+    num = num + 1
+    Tinit = Tinit * delta
+
 time_end = time.time()
 time_total = time_end - time_start
 m, s = divmod(time_total, 60)

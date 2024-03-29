@@ -1,4 +1,5 @@
 import time
+import random
 from typing import Any, Callable, Optional
 import torch
 import torch.nn as nn
@@ -66,7 +67,10 @@ class HybridNet(nn.Module):
         self.fnet = torch.load(fnet_path)
         self.fnet.to(device)
         self.fnet.eval()
-
+        self.thick_max = thick_max
+        self.thick_min = thick_min
+        self.size = size
+        self.device = device
         self.fixed_chs = fixed_chs
         self.n_fixed = 0 if fixed_chs is None else fixed_chs.size(0)
 
@@ -193,7 +197,19 @@ class HybridNet(nn.Module):
         """
         assert hw_weights_input.size(0) == self.DesignParams.size(0)
         return self.SWNet(func.linear(data_input, hw_weights_input, None))
-    
+
+
+    def set_tuihuo_params(self):
+        DesignParams = (self.thick_max - self.thick_min) * torch.rand([self.size[1] - self.n_fixed, self.tf_layer_num]) * 0.2 + self.thick_min
+        # print(DesignParams)
+        with torch.no_grad():
+            for i in range(self.n_fixed - 1, self.size[1]):
+                if random.random() < 0.33:
+                    self.DesignParams[i] = (2000 / torch.sum(DesignParams[i])) * DesignParams[i]
+        self.DesignParams = nn.Parameter(self.DesignParams, requires_grad=True)
+        self.to(self.device)
+        return 0
+
     def plot_params(self)->tuple[plt.Figure, plt.Axes]:
         """
         Plots the design parameters of the fnet.

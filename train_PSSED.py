@@ -81,11 +81,11 @@ num = 0
 t_num = 0
 Tinit = 100000
 Tmin = 1e-3
-delta = 0.5
+delta = 0.9
 
 while Tinit > Tmin:
     optimizer_net = torch.optim.Adam(filter(lambda p: p.requires_grad, hybnet.SWNet.parameters()), lr=lr)
-    scheduler_net = HybridNet.Scheduler_net(optimizer_net, lr_decay_step, lr_decay_gamma)
+    scheduler_net = HybridNet.Scheduler_net(optimizer_net, lr_decay_step, lr_decay_gamma, begin_epoch=50)
     optimizer_params = torch.optim.Adam(filter(lambda p: p.requires_grad, [hybnet.DesignParams]),
                                         lr=lr * config.get("params_lr_coef", 1))
     scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=30, gamma=lr_decay_gamma)
@@ -140,6 +140,11 @@ while Tinit > Tmin:
         if epoch > 400:
             hybnet.to(device_test)
             hybnet.eval()
+
+            # y_pred = fnet(Specs_test.to(device_test), sensor_C.to(device_train),
+            #               lens_C.to(device_train))
+            # error = (torch.randint(0, 100, (y_pred.shape[0], 9)) * 0.001).to(device_test) - 0.05
+            # y_pred = y_pred * error + y_pred
             Out_test_pred = hybnet(Specs_test)
             loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
             loss_sum = loss_t + loss_sum

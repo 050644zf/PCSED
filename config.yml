@@ -25,8 +25,8 @@ PCSED:                   # 训练PCSED、PSSED的配置
   TestInterval: 10     # 测试间隔
   BatchSize: 500000  # 批大小
   lr: 1.0e-4      # 学习率
-  lr_decay_step: 10 # 学习率衰减步数
-  lr_decay_gamma: 0.9 # 学习率衰减因子
+  lr_decay_step: 50 # 学习率衰减步数
+  lr_decay_gamma: 0.8 # 学习率衰减因子
   beta_range: 1.0e-3  # PCSED的loss中beta值
   TFNum: 9      # 通道数
   # -----------------以下为PSSED的配置-----------------

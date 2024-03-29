@@ -85,7 +85,7 @@ class HybridNet(nn.Module):
             torch.manual_seed(seed)
         
         self.DesignParams = nn.Parameter(
-            (thick_max - thick_min) * torch.rand([size[1] - self.n_fixed, self.tf_layer_num])*0.2  + thick_min, requires_grad=True)
+            (thick_max - thick_min) * torch.rand([size[1] - self.n_fixed, self.tf_layer_num])*0.01 +50  + thick_min, requires_grad=True)
 
         if seed > 0:
             torch.random.set_rng_state(rng_state)

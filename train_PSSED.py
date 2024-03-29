@@ -137,14 +137,9 @@ while Tinit > Tmin:
             print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
                   '| learn rate: %.8f' % scheduler_net.get_lr()[0],  '| params learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
 
-        if epoch > 40:
+        if epoch > 400:
             hybnet.to(device_test)
             hybnet.eval()
-
-            # y_pred = fnet(Specs_test.to(device_test), sensor_C.to(device_train),
-            #               lens_C.to(device_train))
-            # error = (torch.randint(0, 100, (y_pred.shape[0], 9)) * 0.001).to(device_test) - 0.05
-            # y_pred = y_pred * error + y_pred
             Out_test_pred = hybnet(Specs_test)
             loss_t = HybridNet.MatchLossFcn(Specs_test, Out_test_pred)
             loss_sum = loss_t + loss_sum
@@ -158,7 +153,7 @@ while Tinit > Tmin:
             Specs_train = Specs_train[index, :]
             # Specs_train_r = Specs_train_r[index, :]
 
-            if epoch % 50 == 0:
+            if epoch % 500 == 0:
                 if (num == 0):
                     loss_temp = loss_t
                     temp_path = os.path.join(path, str(num) + 'hybnet.pkl')

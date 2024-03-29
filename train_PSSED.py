@@ -80,12 +80,12 @@ num = 0
 
 t_num = 0
 Tinit = 100000
-Tmin = 1e-5
-delta = 0.9
+Tmin = 1e-3
+delta = 0.5
 
 while Tinit > Tmin:
     optimizer_net = torch.optim.Adam(filter(lambda p: p.requires_grad, hybnet.SWNet.parameters()), lr=lr)
-    scheduler_net = HybridNet.Scheduler_net(optimizer_net, lr_decay_step, lr_decay_gamma, begin_epoch=50)
+    scheduler_net = HybridNet.Scheduler_net(optimizer_net, lr_decay_step, lr_decay_gamma)
     optimizer_params = torch.optim.Adam(filter(lambda p: p.requires_grad, [hybnet.DesignParams]),
                                         lr=lr * config.get("params_lr_coef", 1))
     scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=30, gamma=lr_decay_gamma)
@@ -137,7 +137,7 @@ while Tinit > Tmin:
             print('Epoch: ', epoch, '| train loss: %.5f' % loss.item(), '| test loss: %.5f' % loss_t.item(),
                   '| learn rate: %.8f' % scheduler_net.get_lr()[0],  '| params learn rate: %.8f' % scheduler_params.get_lr()[0], file=log_file)
 
-        if epoch > 400:
+        if epoch > 40:
             hybnet.to(device_test)
             hybnet.eval()
 
@@ -158,7 +158,7 @@ while Tinit > Tmin:
             Specs_train = Specs_train[index, :]
             # Specs_train_r = Specs_train_r[index, :]
 
-            if epoch % 100 == 0:
+            if epoch % 50 == 0:
                 if (num == 0):
                     loss_temp = loss_t
                     temp_path = os.path.join(path, str(num) + 'hybnet.pkl')

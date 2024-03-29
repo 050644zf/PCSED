@@ -21,9 +21,9 @@ PCSED:                   # 训练PCSED、PSSED的配置
   TrainingDataSize: 1000000 # 训练数据大小（光谱条数）
   TestingDataSize: 5000  # 测试数据大小（光谱条数）
   IsParallel: false      # 是否使用多GPU
-  EpochNum: 1000        # 训练轮数
+  EpochNum: 1001        # 训练轮数
   TestInterval: 1     # 测试间隔
-  BatchSize: 500000  # 批大小
+  BatchSize: 1000000  # 批大小
   lr: 1.0e-4      # 学习率
   lr_decay_step: 50 # 学习率衰减步数
   lr_decay_gamma: 0.8 # 学习率衰减因子
@@ -37,7 +37,7 @@ PCSED:                   # 训练PCSED、PSSED的配置
   fnet_folder: ./nets/fnet/TMM_L20_R5.0 # FMN/TMM模型路径
   TrainDataPath: ./data/wayho_outdoor_5nm.mat # 训练数据路径
   TestDataPath: ./data/wayho_indoor_5nm.mat # 测试数据路径
-  LightPath: ./data/light_4.mat  # 光源数据路径，注释则认为数据已经是光强值了
+  LightPath: ./data/light067.mat  # 光源数据路径，注释则认为数据已经是光强值了
   History: true # 是否存储参数的优化过程
   total_thickness_range: 0.1 #总膜厚变化范围占平均总膜厚比例
   # -----------------以下为测试配置，未能实现---------------

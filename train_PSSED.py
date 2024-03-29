@@ -84,6 +84,13 @@ Tmin = 1e-5
 delta = 0.9
 
 while Tinit > Tmin:
+    optimizer_net = torch.optim.Adam(filter(lambda p: p.requires_grad, hybnet.SWNet.parameters()), lr=lr)
+    scheduler_net = HybridNet.Scheduler_net(optimizer_net, lr_decay_step, lr_decay_gamma, begin_epoch=50)
+    optimizer_params = torch.optim.Adam(filter(lambda p: p.requires_grad, [hybnet.DesignParams]),
+                                        lr=lr * config.get("params_lr_coef", 1))
+    scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=30, gamma=lr_decay_gamma)
+
+
     # Train HybNet
     loss_sum = 0
     for epoch in range(EpochNum):

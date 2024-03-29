@@ -90,7 +90,6 @@ while Tinit > Tmin:
                                         lr=lr * config.get("params_lr_coef", 1))
     scheduler_params = torch.optim.lr_scheduler.StepLR(optimizer_params, step_size=30, gamma=lr_decay_gamma)
 
-
     # Train HybNet
     loss_sum = 0
     for epoch in range(EpochNum):
@@ -159,7 +158,7 @@ while Tinit > Tmin:
             Specs_train = Specs_train[index, :]
             # Specs_train_r = Specs_train_r[index, :]
 
-            if epoch % 500 == 0:
+            if epoch % 50 == 0:
                 if (num == 0):
                     loss_temp = loss_t
                     temp_path = os.path.join(path, str(num) + 'hybnet.pkl')

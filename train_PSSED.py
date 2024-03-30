@@ -158,7 +158,7 @@ plt.plot(WL, Output_train.detach().cpu().numpy())
 plt.ylim(0, 1)
 plt.legend(['GT', 'pred'], loc='upper right')
 plt.savefig(path / 'train')
-plt.show()
+# plt.show()
 
 Output_test = hybnet(Specs_test[0, :].to(device_test).unsqueeze(0)).squeeze(0)
 FigureTestLoss = HybridNet.MatchLossFcn(Specs_test[0, :].to(device_test), Output_test)
@@ -168,7 +168,7 @@ plt.plot(WL, Output_test.detach().cpu().numpy())
 plt.ylim(0, 1)
 plt.legend(['GT', 'pred'], loc='upper right')
 plt.savefig(path / 'test')
-plt.show()
+# plt.show()
 
 print('Training finished!',
       '| loss in figure \'train.png\': %.5f' % FigureTrainLoss.data.item(),
@@ -184,7 +184,7 @@ plt.plot(range(0, EpochNum, TestInterval), loss_test.detach().cpu().numpy())
 plt.semilogy()
 plt.legend(['Loss_train', 'Loss_test'], loc='upper right')
 plt.savefig(path / 'loss')
-plt.show()
+# plt.show()
 
 params_fig, params_axis = hybnet.plot_params()
 params_fig.savefig(path / 'params.png')

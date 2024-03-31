@@ -32,14 +32,14 @@ PCSED:                   # 训练PCSED、PSSED的配置
   # -----------------以下为PSSED的配置-----------------
   params_lr_coef: 1.0e+4  # 设计参数相对于DNN的学习率倍数
   # override_filters: ./nets/hybnet/202031027_104727 # 初始的设计参数，如果需要随机设计参数则注释掉
-  fixed_chs: ./results/CIE.mat # 固定通道的光谱响应，注释则全为待优化通道
+  # fixed_chs: ./results/CIE.mat # 固定通道的光谱响应，注释则全为待优化通道
   QEC: ./data/QEC.mat # 相机量子效率等系统其他响应
   fnet_folder: ./nets/fnet/TMM_L20_R5.0 # FMN/TMM模型路径
   TrainDataPath: ./data/train_pssed.mat # 训练数据路径
   TestDataPath: ./data/test_pssed.mat # 测试数据路径
 #  LightPath: ./data/light_4.mat  # 光源数据路径，注释则认为数据已经是光强值了
   History: true # 是否存储参数的优化过程
-  total_thickness_range: 0.01 #总膜厚变化范围占平均总膜厚比例
+  total_thickness_range: 0.1 #总膜厚变化范围占平均总膜厚比例
   # -----------------以下为测试配置，未能实现---------------
   ADMM_net: ./nets/ADMM_net/20240125_220605/admm_net.pkl  # ADMM网络路径
   thickness_error: 0. # 厚度误差

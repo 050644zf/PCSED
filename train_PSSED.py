@@ -142,12 +142,12 @@ scio.savemat(path / 'TargetCurves_FMN.mat', mdict={'TargetCurves_FMN': TargetCur
 Params = DesignParams.double().detach().cpu().numpy()
 scio.savemat(path / 'TrainedParams.mat', mdict={'Params': Params})
 
-# plt.figure()
-# for i in range(TFNum):
-#     plt.subplot(math.ceil(math.sqrt(TFNum)), math.ceil(math.sqrt(TFNum)), i + 1)
-#     plt.plot(WL, TargetCurves[i, :], WL, TargetCurves_FMN[i, :])
-#     plt.ylim(0, 1)
-# plt.savefig(path / 'ROFcurves')
+plt.figure()
+for i in range(TargetCurves.shape[0]):
+    plt.subplot(math.ceil(math.sqrt(TargetCurves.shape[0])), math.ceil(math.sqrt(TargetCurves.shape[0])), i + 1)
+    plt.plot(WL, TargetCurves[i, :], WL, TargetCurves_FMN[i, :])
+    plt.ylim(0, 1)
+plt.savefig(path / 'ROFcurves')
 # plt.show()
 
 Output_train = hybnet(Specs_train[0, :].to(device_test).unsqueeze(0)).squeeze(0)

@@ -135,6 +135,10 @@ HWweights = hybnet.show_hw_weights()
 TargetCurves = HWweights.double().detach().cpu().numpy()
 scio.savemat(path / 'TargetCurves.mat', mdict={'TargetCurves': TargetCurves})
 
+u,s,v = np.linalg.svd(TargetCurves)
+s = s/np.max(s)
+np.savetxt(path / 'svd_data.txt', s)
+
 DesignParams = hybnet.show_design_params()
 print(DesignParams[0, :])
 TargetCurves_FMN = hybnet.run_fnet(DesignParams).double().detach().cpu().numpy()

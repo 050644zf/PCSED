@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import scipy.io as sio
 
 # 读取 .mat 文件
-data = sio.loadmat(r'./nets/hybnet/1.科学级-自动生成9/TargetCurves.mat')
+data = sio.loadmat(r'D:\learn\PCSED\nets\hybnet\3.科学级-自动生成5\20240331_001831\TargetCurves.mat')
 
 
 your_data = data['TargetCurves']

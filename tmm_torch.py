@@ -200,7 +200,7 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser(description='生成用于计算多层镀膜的透过率的TMM_predictor模型。')
     parser.add_argument('-l','--layers', type=int, default=20, help='镀膜层数', required=True)
-    parser.add_argument('-r','--resolution', type=float, help='光谱分辨率 (nm)', required=True)
+    parser.add_argument('-r','--resolution', type=float, default=5, help='光谱分辨率 (nm)', required=True)
     parser.add_argument('-t','--thickness',nargs=2, type=float, default=[10,400],help='每层的厚度区间，例如 10 400为10-400nm', required=True)
     parser.add_argument('path',metavar='path', nargs='?', type=str, default='.', help='模型的保存位置')
 
@@ -235,7 +235,7 @@ if __name__=='__main__':
 
     # 载入材料nk值
     sio2 = load_nk(matPath/'SiO2new.csv',lambda_list,'nm')
-    tio2 = load_nk(matPath/'TiO2new.csv',lambda_list,'nm')
+    tio2 = load_nk(matPath/'Ti3O5.csv',lambda_list,'nm')
 
     # 载入玻璃nk值
     glass = load_nk(matPath/'bolijingyuan.csv',lambda_list,'nm')

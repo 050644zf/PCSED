@@ -360,7 +360,7 @@ class HybnetLoss(nn.Module):
         
         max_thick = 2000
         total_thick = torch.sum(params, dim=1)
-        total_thick_loss = torch.mean(torch.max(torch.zeros_like(total_thick), total_thick - max_thick))
+        total_thick_loss = torch.mean(torch.max(torch.zeros_like(total_thick), torch.abs(total_thick - max_thick)))
         total_thick_loss = total_thick_loss/ max_thick
         # total_thick_loss = 0
 

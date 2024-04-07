@@ -18,8 +18,8 @@ fnet:                       # 训练PCSED中FMN的配置，如果使用TMM，则
   params_max: 400   # 最大厚度
 PCSED:                   # 训练PCSED、PSSED的配置
   # -----------------以下为PCSED的配置-----------------
-  TrainingDataSize: 5600000 # 训练数据大小（光谱条数）
-  TestingDataSize: 32000  # 测试数据大小（光谱条数）
+  TrainingDataSize: 2300000 # 训练数据大小（光谱条数）
+  TestingDataSize: 12000  # 测试数据大小（光谱条数）
   IsParallel: false      # 是否使用多GPU
   EpochNum: 601        # 训练轮数
   TestInterval: 1     # 测试间隔
@@ -35,8 +35,8 @@ PCSED:                   # 训练PCSED、PSSED的配置
 #  fixed_chs: ./results/CIE_NIR.mat # 固定通道的光谱响应，注释则全为待优化通道
   QEC: ./data/QEC.mat # 相机量子效率等系统其他响应
   fnet_folder: ./nets/fnet/TMM_L20_R5.0 # FMN/TMM模型路径
-  TrainDataPath: ./data/train_pssed.mat # 训练数据路径
-  TestDataPath: ./data/test_pssed.mat # 测试数据路径
+  TrainDataPath: ./data/train_pssed_indoor.mat # 训练数据路径
+  TestDataPath: ./data/test_pssed_indoor.mat # 测试数据路径
 #  LightPath: ./data/light_4.mat  # 光源数据路径，注释则认为数据已经是光强值了
   History: true # 是否存储参数的优化过程
   total_thickness_range: 0.1 #总膜厚变化范围占平均总膜厚比例

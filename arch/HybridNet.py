@@ -315,7 +315,7 @@ def MSE(t1, t2):
     return torch.mean((t1 - t2) ** 2)
 
 def MRAE(t1, t2):
-    return torch.mean(torch.abs(t1 - t2) / torch.abs(t1))
+    return torch.mean(torch.abs(t1 - t2) / (torch.abs(t1)+1e-6))
     # return 0
 
 # MatchLossFcn = nn.MSELoss(reduction='mean')

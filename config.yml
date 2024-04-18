@@ -18,7 +18,7 @@ fnet:                       # 训练PCSED中FMN的配置，如果使用TMM，则
   params_max: 400   # 最大厚度
 PCSED:                   # 训练PCSED、PSSED的配置
   # -----------------以下为PCSED的配置-----------------
-  TrainingDataSize: 5600000 # 训练数据大小（光谱条数）
+  TrainingDataSize: 5000000 # 训练数据大小（光谱条数）
   TestingDataSize: 32000  # 测试数据大小（光谱条数）
   IsParallel: false      # 是否使用多GPU
   EpochNum: 601        # 训练轮数

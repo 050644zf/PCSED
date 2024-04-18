@@ -322,7 +322,7 @@ def MRAE(t1, t2):
 def MatchLossFcn(t1, t2):
     mse = MSE(t1,t2)
     mrae = MRAE(t1,t2)
-    # print("mse: {}, mrae: {}".format(mse,mrae))
+    print("mse: {}, mrae: {}".format(mse,mrae))
     return 0.7 * mse + 0.3 * mrae
     # return mse
 

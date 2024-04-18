@@ -321,10 +321,10 @@ def MRAE(t1, t2):
 # MatchLossFcn = nn.MSELoss(reduction='mean')
 def MatchLossFcn(t1, t2):
     mse = MSE(t1,t2)
-    # mrae = MRAE(t1,t2)
-    # print("mse: {}, mrae: {}".format(mse,mrae))
-    # return 0.7*mse + 0.3*mrae
-    return mse
+    mrae = MRAE(t1,t2)
+    print("mse: {}, mrae: {}".format(mse,mrae))
+    return mse + mrae
+    # return mse
 
 # MatchLossFcn = 
 # MatchLossFcn = MRAE

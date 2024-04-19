@@ -35,7 +35,6 @@ class SWNet(nn.Sequential):
             # self.SWNet.add_module('BatchNorm' + str(i), nn.BatchNorm1d(size[i+1]))
             # self.SWNet.add_module('DropOut' + str(i), nn.Dropout(p=0.2))
             self.add_module('LReLU' + str(i), nn.LeakyReLU(inplace=True))
-        self.add_module('ReLU0', nn.ReLU(inplace=True))
         self.to(device)
 
 class HybridNet(nn.Module):
@@ -115,7 +114,7 @@ class HybridNet(nn.Module):
             self.show_hw_weights(),
             None
         )
-        return self.SWNet(sampled)
+        return torch.relu(self.SWNet(sampled))
 
     def show_design_params(self):
         """

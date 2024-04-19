@@ -21,7 +21,7 @@ PCSED:                   # 训练PCSED、PSSED的配置
   TrainingDataSize: 5600000 # 训练数据大小（光谱条数）
   TestingDataSize: 32000  # 测试数据大小（光谱条数）
   IsParallel: false      # 是否使用多GPU
-  EpochNum: 601        # 训练轮数
+  EpochNum: 1001        # 训练轮数
   TestInterval: 1     # 测试间隔
   BatchSize: 1000000  # 批大小
   lr: 1.0e-4      # 学习率

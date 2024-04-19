@@ -102,8 +102,8 @@ if args.nettype == 'ADMM_Net':
     pass
 else:
     # Load training and testing data
-    Specs_train = torch.zeros([TrainingDataSize * LightNum, SpectralSliceNum], device=device_data, dtype=dtype)
-    Specs_test = torch.zeros([TestingDataSize * LightNum, SpectralSliceNum], device=device_test, dtype=dtype)
+
+
     LightMat = torch.tensor(LightMat, device=device_data, dtype=dtype)
     with h5py.File(config['TrainDataPath'], 'r') as file:
         Specs_all = file['combined_array'][:].T
@@ -113,8 +113,10 @@ else:
     non_zero_indices = np.nonzero(np.sum(Specs_all, axis=1))
     Specs_all = Specs_all[non_zero_indices]
 
+    TrainingDataSize = min(TrainingDataSize, Specs_all.shape[0])
     np.random.shuffle(Specs_all)
     Specs_all = torch.tensor(Specs_all[0:TrainingDataSize, :])
+    Specs_train = torch.zeros([TrainingDataSize * LightNum, SpectralSliceNum], device=device_data, dtype=dtype)
     for i in range(LightNum):
         Specs_train[i * TrainingDataSize: (i + 1) * TrainingDataSize, :] = Specs_all *   LightMat[i, :]
     
@@ -129,6 +131,7 @@ else:
     TestingDataSize = min(TestingDataSize, Specs_all.shape[0])
     np.random.shuffle(Specs_all)
     Specs_all = torch.tensor(Specs_all[0:TestingDataSize, :], device=device_test)
+    Specs_test = torch.zeros([TestingDataSize * LightNum, SpectralSliceNum], device=device_test, dtype=dtype)
     for i in range(LightNum):
         Specs_test[i * TestingDataSize: (i + 1) * TestingDataSize, :] = Specs_all * LightMat[i, :]
     del Specs_all, data

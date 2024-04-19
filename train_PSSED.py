@@ -84,7 +84,6 @@ for epoch in range(EpochNum):
         Specs_batch = Specs_train[i * BatchSize: i * BatchSize + BatchSize, :].to(device_train)
         # Forward pass through HybNet
         Output_pred = hybnet(Specs_batch)
-        Output_pred[Output_pred <= 0] = 1e-4
         DesignParams = hybnet.show_design_params()
         responses = hybnet.show_hw_weights()
         # Calculate loss and backpropagate
@@ -98,7 +97,6 @@ for epoch in range(EpochNum):
         hybnet.to(device_test)
         hybnet.eval()
         Out_test_pred = hybnet(Specs_test)
-        Out_test_pred[Out_test_pred <= 0] = 1e-4
         hybnet.to(device_train)
         hybnet.train()
         hybnet.eval_fnet()

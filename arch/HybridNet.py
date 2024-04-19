@@ -323,9 +323,10 @@ def MatchLossFcn(t1, t2):
     mse = MSE(t1,t2)
     mrae = MRAE(t1,t2)
     print("mse: {}, mrae: {}".format(mse,mrae))
-    n_t1 = t1.detach().cpu().numpy()
-    n_t2 = t2.detach().cpu().numpy()
-    scio.savemat("./test_mrae", {"t1":n_t1, "t2":n_t2})
+    if mrae > 0.5:
+        n_t1 = t1.detach().cpu().numpy()
+        n_t2 = t2.detach().cpu().numpy()
+        scio.savemat("./test_mrae", {"t1":n_t1, "t2":n_t2})
     return 0.85 * mse + 0.15 * mrae
     # return mse
 

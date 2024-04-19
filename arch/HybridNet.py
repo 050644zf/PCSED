@@ -315,7 +315,7 @@ def MSE(t1, t2):
     return torch.mean((t1 - t2) ** 2)
 
 def MRAE(t1, t2):
-    return torch.mean(torch.abs(t1 - t2) / (torch.abs(t1) + 1e-6))
+    return torch.mean(torch.abs(t1 - t2) / (torch.abs(t1) + 1e-4))
     # return 0
 
 # MatchLossFcn = nn.MSELoss(reduction='mean')
@@ -323,10 +323,10 @@ def MatchLossFcn(t1, t2):
     mse = MSE(t1,t2)
     mrae = MRAE(t1,t2)
     print("mse: {}, mrae: {}".format(mse,mrae))
-    if mrae > 200:
-        n_t1 = t1.detach().cpu().numpy()
-        n_t2 = t2.detach().cpu().numpy()
-        scio.savemat("./test_mrae", {"t1":n_t1, "t2":n_t2})
+    # if mrae > 200:
+    #     n_t1 = t1.detach().cpu().numpy()
+    #     n_t2 = t2.detach().cpu().numpy()
+    #     scio.savemat("./test_mrae", {"t1":n_t1, "t2":n_t2})
     return 0.7 * mse + 0.3 * mrae
     # return mse
 

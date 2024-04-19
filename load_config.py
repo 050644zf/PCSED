@@ -109,6 +109,10 @@ else:
         Specs_all = file['combined_array'][:].T
     # data = scio.loadmat(config['TrainDataPath'])
     # Specs_all = np.array(data['data'])
+
+    non_zero_indices = np.nonzero(np.sum(Specs_all, axis=1))
+    Specs_all = Specs_all[non_zero_indices]
+
     np.random.shuffle(Specs_all)
     Specs_all = torch.tensor(Specs_all[0:TrainingDataSize, :])
     for i in range(LightNum):
@@ -118,6 +122,10 @@ else:
     LightMat = LightMat.clone().detach().to(device_test).type(dtype)
     data = scio.loadmat(config['TestDataPath'])
     Specs_all = np.array(data['data'])
+
+    non_zero_indices = np.nonzero(np.sum(Specs_all, axis=1))
+    Specs_all = Specs_all[non_zero_indices]
+
     TestingDataSize = min(TestingDataSize, Specs_all.shape[0])
     np.random.shuffle(Specs_all)
     Specs_all = torch.tensor(Specs_all[0:TestingDataSize, :], device=device_test)

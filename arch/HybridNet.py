@@ -114,7 +114,7 @@ class HybridNet(nn.Module):
             self.show_hw_weights(),
             None
         )
-        return torch.relu(self.SWNet(sampled))
+        return self.SWNet(sampled)
 
     def show_design_params(self):
         """

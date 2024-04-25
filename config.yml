@@ -23,7 +23,7 @@ PCSED:                   # 训练PCSED、PSSED的配置
   IsParallel: false      # 是否使用多GPU
   EpochNum: 1001        # 训练轮数
   TestInterval: 1     # 测试间隔
-  BatchSize: 1000000  # 批大小
+  BatchSize: 1500000  # 批大小
   lr: 1.0e-4      # 学习率
   lr_decay_step: 50 # 学习率衰减步数
   lr_decay_gamma: 0.8 # 学习率衰减因子

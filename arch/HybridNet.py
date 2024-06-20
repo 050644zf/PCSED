@@ -402,17 +402,17 @@ class HybnetLoss_plus(HybnetLoss):
         #     rloss = rloss **2
 
         if not responses is None:
-            # D = torch.matmul(responses, dictionary)
-            # # D = responses
-            # D = D / torch.norm(D, dim=(0,1))
-            # gram = torch.matmul(D.T, D)
-            # # 平均不相关性 (~0.193)
-            # rloss += torch.mean((gram - torch.eye(gram.size(0), device=gram.device))**2)
-
-            D = responses
-            D = D / torch.norm(D, dim=(0, 1))
+            D = torch.matmul(responses, dictionary)
+            # D = responses
+            D = D / torch.norm(D, dim=(0,1))
             gram = torch.matmul(D.T, D)
-            rloss += torch.mean((gram - torch.eye(gram.size(0), device=gram.device)) ** 2)
+            # 平均不相关性 (~0.193)
+            rloss += torch.mean((gram - torch.eye(gram.size(0), device=gram.device))**2)
+
+            # D = responses
+            # D = D / torch.norm(D, dim=(0, 1))
+            # gram = torch.matmul(D.T, D)
+            # rloss += torch.mean((gram - torch.eye(gram.size(0), device=gram.device)) ** 2)
 
             # 最大不相关性 (~)
             # rloss = torch.max((gram - torch.eye(gram.size(0), device=gram.device))**2)

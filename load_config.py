@@ -106,7 +106,7 @@ else:
 
     LightMat = torch.tensor(LightMat, device=device_data, dtype=dtype)
     with h5py.File(config['TrainDataPath'], 'r') as file:
-        Specs_all = file['combined_array'][:].T
+        Specs_all = file['data'][:]
     # data = scio.loadmat(config['TrainDataPath'])
     # Specs_all = np.array(data['data'])
 

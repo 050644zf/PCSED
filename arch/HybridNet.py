@@ -321,7 +321,7 @@ def MRAE(t1, t2):
 def MatchLossFcn(t1, t2):
     mse = MSE(t1,t2)
     mrae = MRAE(t1,t2)
-    print("mse: {}, mrae: {}".format(mse,mrae))
+    # print("mse: {}, mrae: {}".format(mse,mrae))
     if mrae > 0.13 and mrae < 0.17:
         n_t1 = t1.detach().cpu().numpy()
         n_t2 = t2.detach().cpu().numpy()
